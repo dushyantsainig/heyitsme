@@ -76,16 +76,45 @@
     .stranger { background: #1a1e2d; color: #e4e6eb; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #2b324a; }
     .system { background: #171f1a; color: #4cd137; align-self: center; font-size: 0.85em; border-radius: 20px; padding: 5px 14px; border: 1px solid #1e3a24; text-align: center; }
     
+    /* Chat Image Style */
+    .chat-img {
+      max-width: 240px;
+      max-height: 240px;
+      border-radius: 10px;
+      display: block;
+      margin-top: 4px;
+      cursor: pointer;
+    }
+
     #typingIndicator { font-size: 0.82em; color: #9ca3af; font-style: italic; min-height: 18px; margin-bottom: 6px; padding-left: 6px; }
 
     #controls-container { padding: 12px 16px; background: #14161f; border-top: 1px solid #232635; }
-    #controls { display: flex; gap: 10px; }
+    #controls { display: flex; gap: 8px; align-items: center; }
+    
+    /* Photo Upload Button */
+    .btn-file-label {
+      background: #1c202e;
+      border: 1px solid #2d3246;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #94a3b8;
+      font-size: 20px;
+      transition: background 0.2s;
+    }
+    .btn-file-label:hover { background: #282e42; color: #fff; }
+    #imageInput { display: none; }
+
     input[type="text"] { flex: 1; padding: 12px 18px; border: 1px solid #2d3246; border-radius: 24px; font-size: 14.5px; outline: none; background: #1c202e; color: #fff; }
     input:focus { border-color: #70a1ff; }
     input::placeholder { color: #6b7280; }
     
     .btn-send { background: #2ed573; color: white; padding: 10px 22px; border: none; border-radius: 24px; cursor: pointer; font-size: 14.5px; font-weight: 700; }
-    button:disabled { opacity: 0.35; cursor: not-allowed; }
+    button:disabled, .disabled-btn { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
 
     /* Modals */
     .modal-overlay {
@@ -111,7 +140,7 @@
 </head>
 <body>
 
-  <!-- Profile Setup Modal -->
+  <!-- Profile Modal -->
   <div class="modal-overlay" id="profileModal">
     <div class="modal-card">
       <h3>Set Your Profile</h3>
@@ -171,6 +200,10 @@
   <div id="controls-container">
     <div id="typingIndicator"></div>
     <form id="controls">
+      <!-- File input label with camera/photo icon -->
+      <label for="imageInput" class="btn-file-label disabled-btn" id="fileBtnLabel" title="Upload Image">📷</label>
+      <input type="file" id="imageInput" accept="image/*" disabled />
+
       <input type="text" id="msgInput" placeholder="Type a message..." disabled autocomplete="off" />
       <button type="submit" class="btn-send" id="sendBtn" disabled>Send</button>
     </form>
@@ -190,6 +223,9 @@
     const partnerFantasyText = document.getElementById('partner-fantasy-text');
     const modeBadge = document.getElementById('modeBadge');
 
+    const imageInput = document.getElementById('imageInput');
+    const fileBtnLabel = document.getElementById('fileBtnLabel');
+
     // Modals
     const profileModal = document.getElementById('profileModal');
     const saveProfileBtn = document.getElementById('saveProfileBtn');
@@ -206,7 +242,7 @@
     const cancelGroupBtn = document.getElementById('cancelGroupBtn');
     const inviteGroupBtn = document.getElementById('inviteGroupBtn');
 
-    let currentMode = 'random'; // 'random' or 'group'
+    let currentMode = 'random';
     let currentRoomId = null;
     let currentGroupName = '';
     let typingTimeout;
@@ -223,7 +259,6 @@
     profFantasy.value = myProfile.fantasy;
     profShare.checked = myProfile.shareInfo;
 
-    // Check URL parameters for group invite link (?room=xyz&name=abc)
     const urlParams = new URLSearchParams(window.location.search);
     const joinRoomParam = urlParams.get('room');
     const joinNameParam = urlParams.get('name');
@@ -253,7 +288,6 @@
       profileModal.style.display = 'flex';
     });
 
-    // Group Modal handlers
     openGroupBtn.addEventListener('click', () => {
       groupModal.style.display = 'flex';
     });
@@ -268,6 +302,17 @@
       joinCustomGroup(roomId, gName);
     });
 
+    function setChatEnabled(enabled) {
+      msgInput.disabled = !enabled;
+      sendBtn.disabled = !enabled;
+      imageInput.disabled = !enabled;
+      if (enabled) {
+        fileBtnLabel.classList.remove('disabled-btn');
+      } else {
+        fileBtnLabel.classList.add('disabled-btn');
+      }
+    }
+
     function joinCustomGroup(roomId, gName) {
       currentMode = 'group';
       currentRoomId = roomId;
@@ -281,8 +326,7 @@
       nextBtn.innerText = 'Leave Group';
 
       socket.emit('join_group', { roomId, groupName: gName, profile: myProfile });
-      msgInput.disabled = false;
-      sendBtn.disabled = false;
+      setChatEnabled(true);
       msgInput.focus();
     }
 
@@ -290,7 +334,7 @@
       const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${currentRoomId}&name=${encodeURIComponent(currentGroupName)}`;
       if (navigator.clipboard) {
         navigator.clipboard.writeText(inviteUrl);
-        alert('Group Invite Link copied to clipboard! Share it with friends or on WhatsApp.');
+        alert('Group Invite Link copied to clipboard!');
       } else {
         prompt('Copy this link to invite members:', inviteUrl);
       }
@@ -311,6 +355,46 @@
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
+    function addImageMessage(base64Data, type, senderName = '') {
+      const div = document.createElement('div');
+      div.className = `msg ${type}`;
+      if (senderName && type === 'stranger') {
+        const span = document.createElement('div');
+        span.className = 'msg-sender';
+        span.innerText = senderName;
+        div.appendChild(span);
+      }
+      const img = document.createElement('img');
+      img.src = base64Data;
+      img.className = 'chat-img';
+      img.onclick = () => window.open(base64Data, '_blank');
+      div.appendChild(img);
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Photo input event handler
+    imageInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // File size check (under 3MB)
+      if (file.size > 3 * 1024 * 1024) {
+        alert('Please choose an image under 3MB');
+        imageInput.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const base64Data = event.target.result;
+        socket.emit('send_image', base64Data);
+        addImageMessage(base64Data, 'you');
+      };
+      reader.readAsDataURL(file);
+      imageInput.value = '';
+    });
+
     function startRandomChat() {
       currentMode = 'random';
       currentRoomId = null;
@@ -322,10 +406,8 @@
       chatBox.innerHTML = '';
       partnerInfoBar.style.display = 'none';
       typingIndicator.innerText = '';
-      msgInput.disabled = true;
-      sendBtn.disabled = true;
+      setChatEnabled(false);
 
-      // Clean URL if joining via invite previously
       window.history.replaceState({}, document.title, window.location.pathname);
       socket.emit('find_partner', myProfile);
     }
@@ -348,8 +430,7 @@
 
     socket.on('chat_start', (data) => {
       addMessage(data.msg, 'system');
-      msgInput.disabled = false;
-      sendBtn.disabled = false;
+      setChatEnabled(true);
       msgInput.focus();
 
       if (data.partnerProfile) {
@@ -375,9 +456,19 @@
       addMessage(msg, 'stranger');
     });
 
+    socket.on('receive_image', (imageData) => {
+      typingIndicator.innerText = '';
+      addImageMessage(imageData, 'stranger');
+    });
+
     socket.on('receive_group_message', (data) => {
       typingIndicator.innerText = '';
       addMessage(data.text, 'stranger', data.sender);
+    });
+
+    socket.on('receive_group_image', (data) => {
+      typingIndicator.innerText = '';
+      addImageMessage(data.image, 'stranger', data.sender);
     });
 
     socket.on('stranger_typing', (isTyping) => {
@@ -392,8 +483,7 @@
       addMessage('Stranger has disconnected.', 'system');
       partnerInfoBar.style.display = 'none';
       typingIndicator.innerText = '';
-      msgInput.disabled = true;
-      sendBtn.disabled = true;
+      setChatEnabled(false);
     });
 
     msgInput.addEventListener('input', () => {
