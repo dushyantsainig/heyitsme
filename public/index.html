@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anonymous Chat</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body { display: flex; flex-direction: column; height: 100vh; background: #f0f2f5; }
+    header { background: #1c1e21; color: #fff; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; }
+    #chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .msg { padding: 10px 16px; border-radius: 18px; max-width: 70%; word-break: break-word; font-size: 15px; }
+    .you { background: #0084ff; color: white; align-self: flex-end; }
+    .stranger { background: #e4e6eb; color: #050505; align-self: flex-start; }
+    .system { background: #fff3cd; color: #856404; align-self: center; font-size: 0.85em; border-radius: 6px; padding: 6px 12px; }
+    #controls { display: flex; padding: 15px; background: #fff; border-top: 1px solid #ddd; gap: 10px; }
+    input { flex: 1; padding: 12px 16px; border: 1px solid #ccc; border-radius: 24px; font-size: 15px; outline: none; }
+    button { padding: 10px 20px; border: none; border-radius: 20px; cursor: pointer; font-size: 15px; font-weight: bold; }
+    .btn-send { background: #0084ff; color: white; }
+    .btn-next { background: #e4e6eb; color: #050505; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2>Anonymous Chat</h2>
+    <button class="btn-next" id="nextBtn">New Partner</button>
+  </header>
+
+  <div id="chat-box"></div>
+
+  <form id="controls">
+    <input type="text" id="msgInput" placeholder="Message likhein..." disabled autocomplete="off" />
+    <button type="submit" class="btn-send" id="sendBtn" disabled>Send</button>
+  </form>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const chatBox = document.getElementById('chat-box');
+    const msgInput = document.getElementById('msgInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const form = document.getElementById('controls');
+
+    function addMessage(text, type) {
+      const div = document.createElement('div');
+      div.className = `msg ${type}`;
+      div.innerText = text;
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    nextBtn.addEventListener('click', () => {
+      chatBox.innerHTML = '';
+      msgInput.disabled = true;
+      sendBtn.disabled = true;
+      socket.emit('find_partner');
+    });
+
+    socket.on('waiting', (msg) => {
+      addMessage(msg, 'system');
+    });
+
+    socket.on('chat_start', (msg) => {
+      addMessage(msg, 'system');
+      msgInput.disabled = false;
+      sendBtn.disabled = false;
+      msgInput.focus();
+    });
+
+    socket.on('receive_message', (msg) => {
+      addMessage("Stranger: " + msg, 'stranger');
+    });
+
+    socket.on('partner_disconnected', () => {
+      addMessage('Stranger disconnect ho gaya.', 'system');
+      msgInput.disabled = true;
+      sendBtn.disabled = true;
+    });
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = msgInput.value.trim();
+      if (!text) return;
+      socket.emit('send_message', text);
+      addMessage("You: " + text, 'you');
+      msgInput.value = '';
+    });
+
+    socket.emit('find_partner');
+  </script>
+</body>
+</html>
