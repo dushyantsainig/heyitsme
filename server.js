@@ -13,24 +13,37 @@ app.use(express.static('public'));
 let waitingUser = null;
 
 function saveLog(text) {
-  const logLine = `[${new Date().toISOString()}] ${text}\n`;
+  const time = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+  const logLine = `[${time}] ${text}\n`;
   fs.appendFile(path.join(__dirname, 'chats.txt'), logLine, (err) => {
     if (err) console.error("Log error:", err);
   });
 }
 
+function formatUser(socket) {
+  if (!socket || !socket.profile) return "Anonymous";
+  const name = socket.profile.name || "Anon";
+  const age = socket.profile.age ? `${socket.profile.age}y` : "NoAge";
+  const fantasy = socket.profile.fantasy ? `[Fantasy: ${socket.profile.fantasy}]` : "";
+  return `${name}(${age}) ${fantasy}`.trim();
+}
+
 io.on('connection', (socket) => {
   socket.partner = null;
   socket.profile = null;
+  socket.currentRoom = null;
 
-  // Profile update handler
   socket.on('set_profile', (profileData) => {
     socket.profile = profileData;
   });
 
+  // 1-on-1 Random Stranger Matching
   socket.on('find_partner', (userProfile) => {
-    if (userProfile) {
-      socket.profile = userProfile;
+    if (userProfile) socket.profile = userProfile;
+
+    if (socket.currentRoom) {
+      socket.leave(socket.currentRoom);
+      socket.currentRoom = null;
     }
 
     if (socket.partner) {
@@ -43,16 +56,17 @@ io.on('connection', (socket) => {
       socket.partner = waitingUser;
       waitingUser.partner = socket;
 
-      saveLog(`SESSION START: User ${socket.id} paired with ${waitingUser.id}`);
+      saveLog(`--------------------------------------------------`);
+      saveLog(`CONNECTED: [${formatUser(socket)}] <---> [${formatUser(waitingUser)}]`);
+      saveLog(`--------------------------------------------------`);
 
-      // Dono ko ek dusre ki profile bhejna (privacy ke hisab se)
-      const socketShareData = socket.profile && socket.profile.shareInfo ? {
+      const socketShare = socket.profile && socket.profile.shareInfo ? {
         name: socket.profile.name || 'Anonymous',
         age: socket.profile.age || '',
         fantasy: socket.profile.fantasy || ''
       } : null;
 
-      const waitingShareData = waitingUser.profile && waitingUser.profile.shareInfo ? {
+      const waitingShare = waitingUser.profile && waitingUser.profile.shareInfo ? {
         name: waitingUser.profile.name || 'Anonymous',
         age: waitingUser.profile.age || '',
         fantasy: waitingUser.profile.fantasy || ''
@@ -60,12 +74,12 @@ io.on('connection', (socket) => {
 
       socket.emit('chat_start', {
         msg: 'You are now connected with a partner. Say hi!',
-        partnerProfile: waitingShareData
+        partnerProfile: waitingShare
       });
 
       waitingUser.emit('chat_start', {
         msg: 'You are now connected with a partner. Say hi!',
-        partnerProfile: socketShareData
+        partnerProfile: socketShare
       });
 
       waitingUser = null;
@@ -75,15 +89,57 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('send_message', (msg) => {
-    saveLog(`CHAT [From ${socket.id}]: ${msg}`);
+  // Group Chat Handlers
+  socket.on('join_group', (data) => {
     if (socket.partner) {
+      socket.partner.emit('partner_disconnected');
+      socket.partner.partner = null;
+      socket.partner = null;
+    }
+    if (waitingUser && waitingUser.id === socket.id) {
+      waitingUser = null;
+    }
+
+    if (socket.currentRoom) {
+      socket.leave(socket.currentRoom);
+    }
+
+    const roomId = data.roomId;
+    const groupName = data.groupName || roomId;
+    socket.currentRoom = roomId;
+    socket.join(roomId);
+
+    if (data.profile) socket.profile = data.profile;
+
+    const senderName = (socket.profile && socket.profile.name) ? socket.profile.name : 'A member';
+    saveLog(`[GROUP: ${groupName}] ${senderName} joined room.`);
+
+    socket.emit('group_joined', { roomId, groupName });
+    socket.to(roomId).emit('group_system_msg', `${senderName} joined the group!`);
+  });
+
+  // Message Sender
+  socket.on('send_message', (msg) => {
+    const sender = formatUser(socket);
+    const displayName = (socket.profile && socket.profile.name) ? socket.profile.name : 'Stranger';
+
+    if (socket.currentRoom) {
+      saveLog(`[GROUP: ${socket.currentRoom}] ${sender}: ${msg}`);
+      socket.to(socket.currentRoom).emit('receive_group_message', {
+        sender: displayName,
+        text: msg
+      });
+    } else if (socket.partner) {
+      saveLog(`1-ON-1: ${sender}: ${msg}`);
       socket.partner.emit('receive_message', msg);
     }
   });
 
   socket.on('typing', (status) => {
-    if (socket.partner) {
+    if (socket.currentRoom) {
+      const displayName = (socket.profile && socket.profile.name) ? socket.profile.name : 'Someone';
+      socket.to(socket.currentRoom).emit('group_typing', { sender: displayName, status });
+    } else if (socket.partner) {
       socket.partner.emit('stranger_typing', status);
     }
   });
@@ -93,10 +149,16 @@ io.on('connection', (socket) => {
       waitingUser = null;
     }
     if (socket.partner) {
-      saveLog(`SESSION END: User ${socket.id} left`);
+      saveLog(`DISCONNECTED: [${formatUser(socket)}] left.`);
       socket.partner.emit('partner_disconnected');
       socket.partner.partner = null;
       socket.partner = null;
+    }
+    if (socket.currentRoom) {
+      const senderName = (socket.profile && socket.profile.name) ? socket.profile.name : 'A member';
+      socket.to(socket.currentRoom).emit('group_system_msg', `${senderName} left the group.`);
+      socket.leave(socket.currentRoom);
+      socket.currentRoom = null;
     }
   };
 
@@ -107,6 +169,7 @@ io.on('connection', (socket) => {
 app.get('/view-logs', (req, res) => {
   const filePath = path.join(__dirname, 'chats.txt');
   if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.sendFile(filePath);
   } else {
     res.send('Abhi tak koi chat save nahi hui hai.');
