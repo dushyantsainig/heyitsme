@@ -7,7 +7,6 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// Cloudflare / Reverse Proxy se real user IP read karne ke liye
 app.set('trust proxy', true);
 
 const io = new Server(server, {
@@ -22,6 +21,9 @@ if (!fs.existsSync(uploadsDir)) {
 app.use(express.static('public'));
 
 let waitingUser = null;
+
+// Multi-group storage: roomId -> { roomId, groupName, memberCount }
+const activeGroups = new Map();
 
 function saveLog(text) {
   const time = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
@@ -46,14 +48,27 @@ function formatUser(socket) {
   return `${name}(${age}) [IP: ${ip}] ${fantasy}`.trim();
 }
 
+function broadcastGroupList() {
+  const list = Array.from(activeGroups.values());
+  io.emit('group_list_update', list);
+}
+
 io.on('connection', (socket) => {
   socket.partner = null;
   socket.profile = null;
   socket.currentRoom = null;
   socket.inPersonalDM = false;
 
+  // Send current active groups immediately on connect
+  socket.emit('group_list_update', Array.from(activeGroups.values()));
+
   socket.on('set_profile', (profileData) => {
     socket.profile = profileData;
+  });
+
+  // Fetch groups request
+  socket.on('get_groups', () => {
+    socket.emit('group_list_update', Array.from(activeGroups.values()));
   });
 
   // 1-on-1 Matching
@@ -62,8 +77,7 @@ io.on('connection', (socket) => {
     socket.inPersonalDM = false;
 
     if (socket.currentRoom) {
-      socket.leave(socket.currentRoom);
-      socket.currentRoom = null;
+      handleLeaveRoom(socket);
     }
 
     if (socket.partner) {
@@ -108,7 +122,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Group Handlers
+  // Join or Create Group Handler
   socket.on('join_group', (data) => {
     socket.inPersonalDM = false;
     if (socket.partner) {
@@ -121,7 +135,7 @@ io.on('connection', (socket) => {
     }
 
     if (socket.currentRoom) {
-      socket.leave(socket.currentRoom);
+      handleLeaveRoom(socket);
     }
 
     const roomId = data.roomId;
@@ -131,12 +145,40 @@ io.on('connection', (socket) => {
 
     if (data.profile) socket.profile = data.profile;
 
+    // Track active group & members count
+    if (!activeGroups.has(roomId)) {
+      activeGroups.set(roomId, { roomId, groupName, memberCount: 1 });
+    } else {
+      const g = activeGroups.get(roomId);
+      g.memberCount += 1;
+    }
+    broadcastGroupList();
+
     const senderName = (socket.profile && socket.profile.name) ? socket.profile.name : 'A member';
     saveLog(`<b>[GROUP: ${groupName}]</b> ${senderName} [IP: ${getClientIp(socket)}] joined.`);
 
     socket.emit('group_joined', { roomId, groupName });
     socket.to(roomId).emit('group_system_msg', `${senderName} joined the group!`);
   });
+
+  function handleLeaveRoom(s) {
+    if (s.currentRoom) {
+      const rId = s.currentRoom;
+      const senderName = (s.profile && s.profile.name) ? s.profile.name : 'A member';
+      s.to(rId).emit('group_system_msg', `${senderName} left the group.`);
+      s.leave(rId);
+      s.currentRoom = null;
+
+      if (activeGroups.has(rId)) {
+        const g = activeGroups.get(rId);
+        g.memberCount -= 1;
+        if (g.memberCount <= 0) {
+          activeGroups.delete(rId);
+        }
+        broadcastGroupList();
+      }
+    }
+  }
 
   // DM Request System
   socket.on('request_dm', () => {
@@ -162,7 +204,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Report & Abuse Logging System
+  // Report & Abuse Logging
   socket.on('report_partner', (reason) => {
     if (socket.partner) {
       const reportedUser = socket.partner;
@@ -171,7 +213,6 @@ io.on('connection', (socket) => {
       saveLog(reportLog);
       console.warn(`[INCIDENT REPORT]: ${reportLog}`);
 
-      // Alert both and disconnect
       reportedUser.emit('partner_disconnected', 'You were reported for violating platform terms and have been disconnected.');
       socket.emit('report_confirmed');
 
@@ -188,7 +229,9 @@ io.on('connection', (socket) => {
     const displayName = (socket.profile && socket.profile.name) ? socket.profile.name : 'Stranger';
 
     if (socket.currentRoom) {
-      saveLog(`<b>[GROUP: ${socket.currentRoom}] ${sender}:</b> ${msg}`);
+      const g = activeGroups.get(socket.currentRoom);
+      const gName = g ? g.groupName : socket.currentRoom;
+      saveLog(`<b>[GROUP: ${gName}] ${sender}:</b> ${msg}`);
       socket.to(socket.currentRoom).emit('receive_group_message', {
         sender: displayName,
         text: msg
@@ -259,12 +302,7 @@ io.on('connection', (socket) => {
       socket.partner.inPersonalDM = false;
       socket.partner = null;
     }
-    if (socket.currentRoom) {
-      const senderName = (socket.profile && socket.profile.name) ? socket.profile.name : 'A member';
-      socket.to(socket.currentRoom).emit('group_system_msg', `${senderName} left the group.`);
-      socket.leave(socket.currentRoom);
-      socket.currentRoom = null;
-    }
+    handleLeaveRoom(socket);
   };
 
   socket.on('disconnect', handleLeave);
