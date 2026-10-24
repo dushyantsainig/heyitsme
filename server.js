@@ -7,6 +7,9 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
+// Cloudflare / Reverse Proxy se real user IP read karne ke liye
+app.set('trust proxy', true);
+
 const io = new Server(server, {
   maxHttpBufferSize: 5e6 // 5 MB image limit
 });
@@ -28,12 +31,19 @@ function saveLog(text) {
   });
 }
 
+function getClientIp(socket) {
+  const forwarded = socket.handshake.headers['x-forwarded-for'];
+  if (forwarded) return forwarded.split(',')[0].trim();
+  return socket.handshake.address || "Unknown IP";
+}
+
 function formatUser(socket) {
-  if (!socket || !socket.profile) return "Anonymous";
-  const name = socket.profile.name || "Anon";
-  const age = socket.profile.age ? `${socket.profile.age}y` : "NoAge";
-  const fantasy = socket.profile.fantasy ? `[Fantasy: ${socket.profile.fantasy}]` : "";
-  return `${name}(${age}) ${fantasy}`.trim();
+  if (!socket) return "Unknown";
+  const ip = getClientIp(socket);
+  const name = (socket.profile && socket.profile.name) ? socket.profile.name : "Anon";
+  const age = (socket.profile && socket.profile.age) ? `${socket.profile.age}y` : "NoAge";
+  const fantasy = (socket.profile && socket.profile.fantasy) ? `[Topic: ${socket.profile.fantasy}]` : "";
+  return `${name}(${age}) [IP: ${ip}] ${fantasy}`.trim();
 }
 
 io.on('connection', (socket) => {
@@ -122,7 +132,7 @@ io.on('connection', (socket) => {
     if (data.profile) socket.profile = data.profile;
 
     const senderName = (socket.profile && socket.profile.name) ? socket.profile.name : 'A member';
-    saveLog(`<b>[GROUP: ${groupName}]</b> ${senderName} joined.`);
+    saveLog(`<b>[GROUP: ${groupName}]</b> ${senderName} [IP: ${getClientIp(socket)}] joined.`);
 
     socket.emit('group_joined', { roomId, groupName });
     socket.to(roomId).emit('group_system_msg', `${senderName} joined the group!`);
@@ -152,6 +162,26 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Report & Abuse Logging System
+  socket.on('report_partner', (reason) => {
+    if (socket.partner) {
+      const reportedUser = socket.partner;
+      const reportLog = `<span style="background:#dc2626; color:white; padding:3px 8px; border-radius:4px; font-weight:bold;">🚩 ABUSE REPORT FILED</span>: Reporter [${formatUser(socket)}] reported [${formatUser(reportedUser)}]. Reason: "${reason || 'Unspecified inappropriate behavior'}"`;
+      
+      saveLog(reportLog);
+      console.warn(`[INCIDENT REPORT]: ${reportLog}`);
+
+      // Alert both and disconnect
+      reportedUser.emit('partner_disconnected', 'You were reported for violating platform terms and have been disconnected.');
+      socket.emit('report_confirmed');
+
+      reportedUser.partner = null;
+      reportedUser.inPersonalDM = false;
+      socket.partner = null;
+      socket.inPersonalDM = false;
+    }
+  });
+
   // Text Message Handle
   socket.on('send_message', (msg) => {
     const sender = formatUser(socket);
@@ -170,7 +200,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Image Upload Handle (Sirf tab chalega jab DM active ho)
+  // Image Upload Handle
   socket.on('send_image', (payload) => {
     if (!socket.inPersonalDM) {
       socket.emit('system_alert', 'Photos can only be shared inside Personal DM!');
@@ -250,16 +280,17 @@ app.get('/view-logs', (req, res) => {
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Live Chat & Image Logs</title>
+        <title>Live Chat & Security Logs</title>
         <style>
-          body { background: #111; color: #eee; font-family: sans-serif; padding: 20px; font-size: 14px; line-height: 1.5; }
-          hr { border: 0; border-top: 1px solid #333; margin: 10px 0; }
+          body { background: #0c0d11; color: #eee; font-family: sans-serif; padding: 20px; font-size: 13.5px; line-height: 1.5; }
+          hr { border: 0; border-top: 1px solid #222; margin: 10px 0; }
           b { color: #38bdf8; }
           a { color: #f472b6; text-decoration: none; }
         </style>
       </head>
       <body>
-        <h2>Live Chats & Images</h2>
+        <h2 style="color:#f87171;">Audit Logs & Abuse Tracking</h2>
+        <p style="color:#94a3b8; font-size:12px;">Timestamps, User IPs, and Session Records</p>
         <div id="logs">${content}</div>
       </body>
       </html>
