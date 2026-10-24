@@ -7,10 +7,14 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// 5MB tak ki image send allow karne ke liye maxHttpBufferSize badhaya
 const io = new Server(server, {
-  maxHttpBufferSize: 5e6 // 5 MB
+  maxHttpBufferSize: 5e6 // 5 MB image limit
 });
+
+const uploadsDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 app.use(express.static('public'));
 
@@ -18,8 +22,8 @@ let waitingUser = null;
 
 function saveLog(text) {
   const time = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
-  const logLine = `[${time}] ${text}\n`;
-  fs.appendFile(path.join(__dirname, 'chats.txt'), logLine, (err) => {
+  const logLine = `<p style="margin: 4px 0;">[${time}] ${text}</p>\n`;
+  fs.appendFile(path.join(__dirname, 'chats.html'), logLine, (err) => {
     if (err) console.error("Log error:", err);
   });
 }
@@ -60,9 +64,7 @@ io.on('connection', (socket) => {
       socket.partner = waitingUser;
       waitingUser.partner = socket;
 
-      saveLog(`--------------------------------------------------`);
-      saveLog(`CONNECTED: [${formatUser(socket)}] <---> [${formatUser(waitingUser)}]`);
-      saveLog(`--------------------------------------------------`);
+      saveLog(`<hr><b>CONNECTED:</b> [${formatUser(socket)}] &lt;---&gt; [${formatUser(waitingUser)}]<hr>`);
 
       const socketShare = socket.profile && socket.profile.shareInfo ? {
         name: socket.profile.name || 'Anonymous',
@@ -116,43 +118,75 @@ io.on('connection', (socket) => {
     if (data.profile) socket.profile = data.profile;
 
     const senderName = (socket.profile && socket.profile.name) ? socket.profile.name : 'A member';
-    saveLog(`[GROUP: ${groupName}] ${senderName} joined room.`);
+    saveLog(`<b>[GROUP: ${groupName}]</b> ${senderName} joined.`);
 
     socket.emit('group_joined', { roomId, groupName });
     socket.to(roomId).emit('group_system_msg', `${senderName} joined the group!`);
   });
 
-  // Text Message
+  // Private Mode Toggle by Group Admin
+  socket.on('toggle_privacy_mode', (isPrivate) => {
+    if (socket.currentRoom) {
+      saveLog(`<b>[GROUP: ${socket.currentRoom}]</b> Private Mode set to: ${isPrivate}`);
+      io.to(socket.currentRoom).emit('privacy_mode_updated', isPrivate);
+    }
+  });
+
+  // Text Message Handle
   socket.on('send_message', (msg) => {
     const sender = formatUser(socket);
     const displayName = (socket.profile && socket.profile.name) ? socket.profile.name : 'Stranger';
 
     if (socket.currentRoom) {
-      saveLog(`[GROUP: ${socket.currentRoom}] ${sender}: ${msg}`);
+      saveLog(`<b>[GROUP: ${socket.currentRoom}] ${sender}:</b> ${msg}`);
       socket.to(socket.currentRoom).emit('receive_group_message', {
         sender: displayName,
         text: msg
       });
     } else if (socket.partner) {
-      saveLog(`1-ON-1: ${sender}: ${msg}`);
+      saveLog(`<b>1-ON-1 [${sender}]:</b> ${msg}`);
       socket.partner.emit('receive_message', msg);
     }
   });
 
-  // Image Send Handler
-  socket.on('send_image', (imageData) => {
+  // Photo Handle with View-Once Support
+  socket.on('send_image', (payload) => {
+    // payload: { image: base64Data, viewOnce: boolean }
+    const base64Data = payload.image;
+    const viewOnce = !!payload.viewOnce;
     const sender = formatUser(socket);
     const displayName = (socket.profile && socket.profile.name) ? socket.profile.name : 'Stranger';
 
-    if (socket.currentRoom) {
-      saveLog(`[GROUP: ${socket.currentRoom}] ${sender} sent an image`);
-      socket.to(socket.currentRoom).emit('receive_group_image', {
-        sender: displayName,
-        image: imageData
+    const matches = base64Data.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
+    if (matches && matches.length === 3) {
+      const ext = matches[1].replace('jpeg', 'jpg');
+      const base64Content = matches[2];
+      const fileName = `img_${Date.now()}_${Math.floor(Math.random() * 1000)}.${ext}`;
+      const filePath = path.join(uploadsDir, fileName);
+
+      fs.writeFile(filePath, base64Content, 'base64', (err) => {
+        if (!err) {
+          const imgTag = `<br><a href="/uploads/${fileName}" target="_blank"><img src="/uploads/${fileName}" style="max-width:180px; max-height:180px; border-radius:8px; margin:5px 0; border:1px solid #444;" /></a> ${viewOnce ? '<b>[VIEW ONCE]</b>' : ''}`;
+          if (socket.currentRoom) {
+            saveLog(`<b>[GROUP: ${socket.currentRoom}] ${sender} sent photo:</b> ${imgTag}`);
+          } else {
+            saveLog(`<b>1-ON-1 [${sender}] sent photo:</b> ${imgTag}`);
+          }
+        }
       });
+    }
+
+    const outgoingData = {
+      sender: displayName,
+      image: base64Data,
+      viewOnce: viewOnce,
+      msgId: 'msg_' + Math.random().toString(36).substring(2, 9)
+    };
+
+    if (socket.currentRoom) {
+      socket.to(socket.currentRoom).emit('receive_group_image', outgoingData);
     } else if (socket.partner) {
-      saveLog(`1-ON-1: ${sender} sent an image`);
-      socket.partner.emit('receive_image', imageData);
+      socket.partner.emit('receive_image', outgoingData);
     }
   });
 
@@ -170,7 +204,7 @@ io.on('connection', (socket) => {
       waitingUser = null;
     }
     if (socket.partner) {
-      saveLog(`DISCONNECTED: [${formatUser(socket)}] left.`);
+      saveLog(`<i>DISCONNECTED: [${formatUser(socket)}] left.</i>`);
       socket.partner.emit('partner_disconnected');
       socket.partner.partner = null;
       socket.partner = null;
@@ -188,12 +222,30 @@ io.on('connection', (socket) => {
 });
 
 app.get('/view-logs', (req, res) => {
-  const filePath = path.join(__dirname, 'chats.txt');
+  const filePath = path.join(__dirname, 'chats.html');
   if (fs.existsSync(filePath)) {
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.sendFile(filePath);
+    const content = fs.readFileSync(filePath, 'utf-8');
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Live Chat & Image Logs</title>
+        <style>
+          body { background: #111; color: #eee; font-family: sans-serif; padding: 20px; font-size: 14px; line-height: 1.5; }
+          hr { border: 0; border-top: 1px solid #333; margin: 10px 0; }
+          b { color: #38bdf8; }
+          a { color: #f472b6; text-decoration: none; }
+        </style>
+      </head>
+      <body>
+        <h2>Live Chats & Images</h2>
+        <div id="logs">${content}</div>
+      </body>
+      </html>
+    `);
   } else {
-    res.send('Abhi tak koi chat save nahi hui hai.');
+    res.send('Abhi tak koi chat ya photo share nahi hui hai.');
   }
 });
 
