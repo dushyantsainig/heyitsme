@@ -9,8 +9,11 @@ const io = new Server(server);
 app.use(express.static('public'));
 
 let waitingUser = null;
+let onlineUsers = 0;
 
 io.on('connection', (socket) => {
+  onlineUsers++;
+  io.emit('online_count', onlineUsers);
   socket.partner = null;
 
   socket.on('find_partner', () => {
@@ -24,19 +27,25 @@ io.on('connection', (socket) => {
       socket.partner = waitingUser;
       waitingUser.partner = socket;
 
-      socket.emit('chat_start', 'Aap ek stranger ke sath connect ho gaye!');
-      waitingUser.emit('chat_start', 'Aap ek stranger ke sath connect ho gaye!');
+      socket.emit('chat_start', 'You are now connected with a random stranger. Say hi!');
+      waitingUser.emit('chat_start', 'You are now connected with a random stranger. Say hi!');
 
       waitingUser = null;
     } else {
       waitingUser = socket;
-      socket.emit('waiting', 'Stranger dhoonda ja raha hai...');
+      socket.emit('waiting', 'Looking for someone to chat with...');
     }
   });
 
   socket.on('send_message', (msg) => {
     if (socket.partner) {
       socket.partner.emit('receive_message', msg);
+    }
+  });
+
+  socket.on('typing', (status) => {
+    if (socket.partner) {
+      socket.partner.emit('stranger_typing', status);
     }
   });
 
@@ -51,7 +60,12 @@ io.on('connection', (socket) => {
     }
   };
 
-  socket.on('disconnect', handleLeave);
+  socket.on('disconnect', () => {
+    onlineUsers = Math.max(0, onlineUsers - 1);
+    io.emit('online_count', onlineUsers);
+    handleLeave();
+  });
+
   socket.on('leave_chat', handleLeave);
 });
 
