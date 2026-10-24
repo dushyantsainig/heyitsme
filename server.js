@@ -6,7 +6,11 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+
+// 5MB tak ki image send allow karne ke liye maxHttpBufferSize badhaya
+const io = new Server(server, {
+  maxHttpBufferSize: 5e6 // 5 MB
+});
 
 app.use(express.static('public'));
 
@@ -37,7 +41,7 @@ io.on('connection', (socket) => {
     socket.profile = profileData;
   });
 
-  // 1-on-1 Random Stranger Matching
+  // 1-on-1 Matching
   socket.on('find_partner', (userProfile) => {
     if (userProfile) socket.profile = userProfile;
 
@@ -89,7 +93,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Group Chat Handlers
+  // Group Handlers
   socket.on('join_group', (data) => {
     if (socket.partner) {
       socket.partner.emit('partner_disconnected');
@@ -118,7 +122,7 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('group_system_msg', `${senderName} joined the group!`);
   });
 
-  // Message Sender
+  // Text Message
   socket.on('send_message', (msg) => {
     const sender = formatUser(socket);
     const displayName = (socket.profile && socket.profile.name) ? socket.profile.name : 'Stranger';
@@ -132,6 +136,23 @@ io.on('connection', (socket) => {
     } else if (socket.partner) {
       saveLog(`1-ON-1: ${sender}: ${msg}`);
       socket.partner.emit('receive_message', msg);
+    }
+  });
+
+  // Image Send Handler
+  socket.on('send_image', (imageData) => {
+    const sender = formatUser(socket);
+    const displayName = (socket.profile && socket.profile.name) ? socket.profile.name : 'Stranger';
+
+    if (socket.currentRoom) {
+      saveLog(`[GROUP: ${socket.currentRoom}] ${sender} sent an image`);
+      socket.to(socket.currentRoom).emit('receive_group_image', {
+        sender: displayName,
+        image: imageData
+      });
+    } else if (socket.partner) {
+      saveLog(`1-ON-1: ${sender} sent an image`);
+      socket.partner.emit('receive_image', imageData);
     }
   });
 
