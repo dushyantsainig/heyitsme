@@ -15,28 +15,49 @@
     
     header { 
       background: #14161f; 
-      padding: 12px 20px; 
+      padding: 12px 18px; 
       display: flex; 
       justify-content: space-between; 
       align-items: center; 
       border-bottom: 1px solid #232635; 
+      flex-wrap: wrap;
+      gap: 10px;
     }
+    .brand { display: flex; align-items: center; gap: 10px; }
     .brand h2 { 
       font-family: 'Playfair Display', serif; 
       font-style: italic; 
-      font-size: 1.6rem; 
+      font-size: 1.5rem; 
       font-weight: 700; 
       background: linear-gradient(135deg, #ffffff 30%, #8ec5fc 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
+    .room-badge {
+      font-size: 11px;
+      background: #1e293b;
+      color: #38bdf8;
+      padding: 4px 10px;
+      border-radius: 12px;
+      border: 1px solid #334155;
+    }
 
     .header-actions { display: flex; gap: 8px; align-items: center; }
-    .btn-profile { background: #252a3d; color: #a5b4fc; padding: 8px 14px; border: 1px solid #3b4261; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600; }
-    .btn-share { background: #25D366; color: white; padding: 8px 14px; border: none; border-radius: 20px; text-decoration: none; font-size: 13px; font-weight: 600; display: flex; align-items: center; }
-    .btn-next { background: #ff4757; color: #ffffff; padding: 8px 16px; border: none; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 700; }
+    .btn-action { 
+      padding: 7px 13px; 
+      border-radius: 18px; 
+      border: 1px solid #3b4261; 
+      background: #252a3d; 
+      color: #cbd5e1; 
+      cursor: pointer; 
+      font-size: 12.5px; 
+      font-weight: 600; 
+      text-decoration: none;
+    }
+    .btn-create-group { background: #8b5cf6; border: none; color: #fff; }
+    .btn-invite-group { background: #10b981; border: none; color: #fff; display: none; }
+    .btn-next { background: #ff4757; color: #ffffff; border: none; }
 
-    /* Partner Info Banner */
     #partner-info-bar {
       display: none;
       background: #191c2b;
@@ -49,23 +70,24 @@
     #partner-fantasy-text { color: #f472b6; font-style: italic; margin-top: 2px; }
 
     #chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #0c0d11; }
-    .msg { padding: 12px 18px; border-radius: 18px; max-width: 75%; word-break: break-word; font-size: 15px; line-height: 1.45; }
+    .msg { padding: 10px 16px; border-radius: 16px; max-width: 75%; word-break: break-word; font-size: 14.5px; line-height: 1.4; }
+    .msg-sender { font-size: 11px; color: #94a3b8; margin-bottom: 3px; font-weight: 600; }
     .you { background: #2f3542; color: #ffffff; align-self: flex-end; border-bottom-right-radius: 4px; border: 1px solid #404556; }
     .stranger { background: #1a1e2d; color: #e4e6eb; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #2b324a; }
-    .system { background: #171f1a; color: #4cd137; align-self: center; font-size: 0.85em; border-radius: 20px; padding: 6px 16px; border: 1px solid #1e3a24; text-align: center; }
+    .system { background: #171f1a; color: #4cd137; align-self: center; font-size: 0.85em; border-radius: 20px; padding: 5px 14px; border: 1px solid #1e3a24; text-align: center; }
     
-    #typingIndicator { font-size: 0.85em; color: #9ca3af; font-style: italic; min-height: 18px; margin-bottom: 6px; padding-left: 6px; }
+    #typingIndicator { font-size: 0.82em; color: #9ca3af; font-style: italic; min-height: 18px; margin-bottom: 6px; padding-left: 6px; }
 
-    #controls-container { padding: 14px 18px; background: #14161f; border-top: 1px solid #232635; }
+    #controls-container { padding: 12px 16px; background: #14161f; border-top: 1px solid #232635; }
     #controls { display: flex; gap: 10px; }
-    input[type="text"] { flex: 1; padding: 13px 20px; border: 1px solid #2d3246; border-radius: 26px; font-size: 15px; outline: none; background: #1c202e; color: #fff; }
+    input[type="text"] { flex: 1; padding: 12px 18px; border: 1px solid #2d3246; border-radius: 24px; font-size: 14.5px; outline: none; background: #1c202e; color: #fff; }
     input:focus { border-color: #70a1ff; }
     input::placeholder { color: #6b7280; }
     
-    .btn-send { background: #2ed573; color: white; padding: 10px 24px; border: none; border-radius: 26px; cursor: pointer; font-size: 15px; font-weight: 700; }
+    .btn-send { background: #2ed573; color: white; padding: 10px 22px; border: none; border-radius: 24px; cursor: pointer; font-size: 14.5px; font-weight: 700; }
     button:disabled { opacity: 0.35; cursor: not-allowed; }
 
-    /* Profile Modal */
+    /* Modals */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 999;
@@ -80,7 +102,7 @@
       padding: 10px 14px; background: #0f1016; border: 1px solid #2d3246; border-radius: 8px; color: #fff; font-size: 14px; outline: none;
     }
     .form-group textarea { resize: none; height: 60px; }
-    .toggle-row { display: flex; align-items: center; gap: 10px; margin: 16px 0; font-size: 13.5px; color: #cbd5e1; }
+    .toggle-row { display: flex; align-items: center; gap: 10px; margin: 14px 0; font-size: 13px; color: #cbd5e1; }
     .toggle-row input { width: 18px; height: 18px; accent-color: #2ed573; cursor: pointer; }
     .modal-btn {
       width: 100%; padding: 12px; background: #38bdf8; border: none; border-radius: 10px; color: #000; font-weight: 700; font-size: 15px; cursor: pointer;
@@ -102,29 +124,43 @@
         <input type="number" id="profAge" placeholder="e.g. 21" min="13" max="99" />
       </div>
       <div class="form-group">
-        <label>Your Fantasy / Topic to discuss</label>
-        <textarea id="profFantasy" placeholder="What would you love to talk about?"></textarea>
+        <label>Your Fantasy / Topic</label>
+        <textarea id="profFantasy" placeholder="What do you want to talk about?"></textarea>
       </div>
       <div class="toggle-row">
         <input type="checkbox" id="profShare" checked />
-        <label for="profShare">Show my Name, Age & Fantasy to stranger</label>
+        <label for="profShare">Show my info to stranger in 1-on-1</label>
       </div>
-      <button class="modal-btn" id="saveProfileBtn">Start Chatting</button>
+      <button class="modal-btn" id="saveProfileBtn">Save & Start</button>
+    </div>
+  </div>
+
+  <!-- Create Group Modal -->
+  <div class="modal-overlay" id="groupModal" style="display: none;">
+    <div class="modal-card">
+      <h3>Create a Chat Group</h3>
+      <div class="form-group">
+        <label>Group Name</label>
+        <input type="text" id="groupNameInput" placeholder="e.g. Late Night Vibe" />
+      </div>
+      <button class="modal-btn" id="startGroupBtn" style="background: #a855f7; color: #fff;">Create & Invite</button>
+      <button class="modal-btn" id="cancelGroupBtn" style="background: transparent; color: #94a3b8; border: 1px solid #334155; margin-top: 8px;">Cancel</button>
     </div>
   </div>
 
   <header>
     <div class="brand">
       <h2>Talk to Me</h2>
+      <span class="room-badge" id="modeBadge">Random 1-on-1</span>
     </div>
     <div class="header-actions">
-      <button class="btn-profile" id="openProfileBtn">⚙ My Profile</button>
-      <a href="https://api.whatsapp.com/send?text=Chat%20with%20random%20people%20anonymously%20here:%20https://heyitsme-1.onrender.com" target="_blank" class="btn-share">Invite</a>
-      <button class="btn-next" id="nextBtn">Next</button>
+      <button class="btn-action" id="openProfileBtn">⚙ Profile</button>
+      <button class="btn-action btn-create-group" id="openGroupBtn">+ Create Group</button>
+      <button class="btn-action btn-invite-group" id="inviteGroupBtn">🔗 Share Link</button>
+      <button class="btn-action btn-next" id="nextBtn">Next</button>
     </div>
   </header>
 
-  <!-- Partner Profile Bar -->
   <div id="partner-info-bar">
     <div id="partner-basic-info"><b>Partner:</b> Anonymous</div>
     <div id="partner-fantasy-text"></div>
@@ -152,8 +188,9 @@
     const partnerInfoBar = document.getElementById('partner-info-bar');
     const partnerBasicInfo = document.getElementById('partner-basic-info');
     const partnerFantasyText = document.getElementById('partner-fantasy-text');
+    const modeBadge = document.getElementById('modeBadge');
 
-    // Profile elements
+    // Modals
     const profileModal = document.getElementById('profileModal');
     const saveProfileBtn = document.getElementById('saveProfileBtn');
     const openProfileBtn = document.getElementById('openProfileBtn');
@@ -162,9 +199,18 @@
     const profFantasy = document.getElementById('profFantasy');
     const profShare = document.getElementById('profShare');
 
+    const groupModal = document.getElementById('groupModal');
+    const openGroupBtn = document.getElementById('openGroupBtn');
+    const groupNameInput = document.getElementById('groupNameInput');
+    const startGroupBtn = document.getElementById('startGroupBtn');
+    const cancelGroupBtn = document.getElementById('cancelGroupBtn');
+    const inviteGroupBtn = document.getElementById('inviteGroupBtn');
+
+    let currentMode = 'random'; // 'random' or 'group'
+    let currentRoomId = null;
+    let currentGroupName = '';
     let typingTimeout;
 
-    // Load stored profile if available
     let myProfile = {
       name: localStorage.getItem('chat_name') || '',
       age: localStorage.getItem('chat_age') || '',
@@ -177,9 +223,13 @@
     profFantasy.value = myProfile.fantasy;
     profShare.checked = myProfile.shareInfo;
 
-    // Modal Events
+    // Check URL parameters for group invite link (?room=xyz&name=abc)
+    const urlParams = new URLSearchParams(window.location.search);
+    const joinRoomParam = urlParams.get('room');
+    const joinNameParam = urlParams.get('name');
+
     saveProfileBtn.addEventListener('click', () => {
-      myProfile.name = profName.value.trim();
+      myProfile.name = profName.value.trim() || 'Anonymous';
       myProfile.age = profAge.value.trim();
       myProfile.fantasy = profFantasy.value.trim();
       myProfile.shareInfo = profShare.checked;
@@ -191,34 +241,108 @@
 
       profileModal.style.display = 'none';
       socket.emit('set_profile', myProfile);
-      findNewPartner();
+
+      if (joinRoomParam) {
+        joinCustomGroup(joinRoomParam, joinNameParam || 'Custom Group');
+      } else {
+        startRandomChat();
+      }
     });
 
     openProfileBtn.addEventListener('click', () => {
       profileModal.style.display = 'flex';
     });
 
-    function addMessage(text, type) {
+    // Group Modal handlers
+    openGroupBtn.addEventListener('click', () => {
+      groupModal.style.display = 'flex';
+    });
+    cancelGroupBtn.addEventListener('click', () => {
+      groupModal.style.display = 'none';
+    });
+
+    startGroupBtn.addEventListener('click', () => {
+      const gName = groupNameInput.value.trim() || 'My Group';
+      const roomId = 'room_' + Math.random().toString(36).substring(2, 9);
+      groupModal.style.display = 'none';
+      joinCustomGroup(roomId, gName);
+    });
+
+    function joinCustomGroup(roomId, gName) {
+      currentMode = 'group';
+      currentRoomId = roomId;
+      currentGroupName = gName;
+
+      chatBox.innerHTML = '';
+      partnerInfoBar.style.display = 'none';
+      modeBadge.innerText = `Group: ${gName}`;
+      modeBadge.style.color = '#a855f7';
+      inviteGroupBtn.style.display = 'inline-block';
+      nextBtn.innerText = 'Leave Group';
+
+      socket.emit('join_group', { roomId, groupName: gName, profile: myProfile });
+      msgInput.disabled = false;
+      sendBtn.disabled = false;
+      msgInput.focus();
+    }
+
+    inviteGroupBtn.addEventListener('click', () => {
+      const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${currentRoomId}&name=${encodeURIComponent(currentGroupName)}`;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(inviteUrl);
+        alert('Group Invite Link copied to clipboard! Share it with friends or on WhatsApp.');
+      } else {
+        prompt('Copy this link to invite members:', inviteUrl);
+      }
+    });
+
+    function addMessage(text, type, senderName = '') {
       const div = document.createElement('div');
       div.className = `msg ${type}`;
-      div.innerText = text;
+      if (senderName && type === 'stranger') {
+        const span = document.createElement('div');
+        span.className = 'msg-sender';
+        span.innerText = senderName;
+        div.appendChild(span);
+      }
+      const textNode = document.createTextNode(text);
+      div.appendChild(textNode);
       chatBox.appendChild(div);
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    function findNewPartner() {
+    function startRandomChat() {
+      currentMode = 'random';
+      currentRoomId = null;
+      inviteGroupBtn.style.display = 'none';
+      modeBadge.innerText = 'Random 1-on-1';
+      modeBadge.style.color = '#38bdf8';
+      nextBtn.innerText = 'Next Stranger';
+
       chatBox.innerHTML = '';
       partnerInfoBar.style.display = 'none';
-      partnerFantasyText.innerText = '';
       typingIndicator.innerText = '';
       msgInput.disabled = true;
       sendBtn.disabled = true;
+
+      // Clean URL if joining via invite previously
+      window.history.replaceState({}, document.title, window.location.pathname);
       socket.emit('find_partner', myProfile);
     }
 
-    nextBtn.addEventListener('click', findNewPartner);
+    nextBtn.addEventListener('click', () => {
+      startRandomChat();
+    });
 
     socket.on('waiting', (msg) => {
+      addMessage(msg, 'system');
+    });
+
+    socket.on('group_joined', (data) => {
+      addMessage(`Welcome to "${data.groupName}"! Click "Share Link" to invite friends.`, 'system');
+    });
+
+    socket.on('group_system_msg', (msg) => {
       addMessage(msg, 'system');
     });
 
@@ -228,7 +352,6 @@
       sendBtn.disabled = false;
       msgInput.focus();
 
-      // Stranger Profile Display
       if (data.partnerProfile) {
         partnerInfoBar.style.display = 'block';
         let infoStr = `<b>Partner:</b> ${data.partnerProfile.name}`;
@@ -249,11 +372,20 @@
 
     socket.on('receive_message', (msg) => {
       typingIndicator.innerText = '';
-      addMessage("Stranger: " + msg, 'stranger');
+      addMessage(msg, 'stranger');
+    });
+
+    socket.on('receive_group_message', (data) => {
+      typingIndicator.innerText = '';
+      addMessage(data.text, 'stranger', data.sender);
     });
 
     socket.on('stranger_typing', (isTyping) => {
       typingIndicator.innerText = isTyping ? "Stranger is typing..." : "";
+    });
+
+    socket.on('group_typing', (data) => {
+      typingIndicator.innerText = data.status ? `${data.sender} is typing...` : "";
     });
 
     socket.on('partner_disconnected', () => {
@@ -278,7 +410,7 @@
       if (!text) return;
       socket.emit('typing', false);
       socket.emit('send_message', text);
-      addMessage("You: " + text, 'you');
+      addMessage(text, 'you');
       msgInput.value = '';
     });
   </script>
