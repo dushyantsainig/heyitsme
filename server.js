@@ -1,763 +1,275 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Talk to Me</title>
-  
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Playfair+Display:ital,wght@1,600;1,700&display=swap" rel="stylesheet">
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const fs = require('fs');
+const path = require('path');
 
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
-    body { display: flex; flex-direction: column; height: 100vh; background: #0c0d11; color: #ffffff; }
-    
-    header { 
-      background: #14161f; 
-      padding: 12px 18px; 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      border-bottom: 1px solid #232635; 
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .brand { display: flex; align-items: center; gap: 10px; }
-    .brand h2 { 
-      font-family: 'Playfair Display', serif; 
-      font-style: italic; 
-      font-size: 1.5rem; 
-      font-weight: 700; 
-      background: linear-gradient(135deg, #ffffff 30%, #8ec5fc 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .room-badge {
-      font-size: 11px;
-      background: #1e293b;
-      color: #38bdf8;
-      padding: 4px 10px;
-      border-radius: 12px;
-      border: 1px solid #334155;
-    }
+const app = express();
+const server = http.createServer(app);
 
-    .header-actions { display: flex; gap: 8px; align-items: center; }
-    .btn-action { 
-      padding: 7px 13px; 
-      border-radius: 18px; 
-      border: 1px solid #3b4261; 
-      background: #252a3d; 
-      color: #cbd5e1; 
-      cursor: pointer; 
-      font-size: 12.5px; 
-      font-weight: 600; 
-      text-decoration: none;
-    }
-    .btn-create-group { background: #8b5cf6; border: none; color: #fff; }
-    .btn-invite-group { background: #10b981; border: none; color: #fff; display: none; }
-    .btn-next { background: #ff4757; color: #ffffff; border: none; }
+const io = new Server(server, {
+  maxHttpBufferSize: 5e6 // 5 MB image limit
+});
 
-    /* Admin Private Group Toggle */
-    .privacy-toggle-container {
-      display: none;
-      align-items: center;
-      gap: 6px;
-      background: #1e2230;
-      padding: 5px 12px;
-      border-radius: 18px;
-      font-size: 12px;
-      border: 1px solid #2e3448;
-    }
-    .privacy-toggle-container input { accent-color: #ec4899; cursor: pointer; }
+const uploadsDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
-    /* Anti-Screenshot Hard Guard */
-    .private-locked {
-      user-select: none !important;
-      -webkit-user-select: none !important;
-      -webkit-touch-callout: none !important;
-    }
-    .private-locked img {
-      pointer-events: none !important;
-      -webkit-user-drag: none !important;
+app.use(express.static('public'));
+
+let waitingUser = null;
+
+function saveLog(text) {
+  const time = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+  const logLine = `<p style="margin: 4px 0;">[${time}] ${text}</p>\n`;
+  fs.appendFile(path.join(__dirname, 'chats.html'), logLine, (err) => {
+    if (err) console.error("Log error:", err);
+  });
+}
+
+function formatUser(socket) {
+  if (!socket || !socket.profile) return "Anonymous";
+  const name = socket.profile.name || "Anon";
+  const age = socket.profile.age ? `${socket.profile.age}y` : "NoAge";
+  const fantasy = socket.profile.fantasy ? `[Fantasy: ${socket.profile.fantasy}]` : "";
+  return `${name}(${age}) ${fantasy}`.trim();
+}
+
+io.on('connection', (socket) => {
+  socket.partner = null;
+  socket.profile = null;
+  socket.currentRoom = null;
+  socket.inPersonalDM = false;
+
+  socket.on('set_profile', (profileData) => {
+    socket.profile = profileData;
+  });
+
+  // 1-on-1 Matching
+  socket.on('find_partner', (userProfile) => {
+    if (userProfile) socket.profile = userProfile;
+    socket.inPersonalDM = false;
+
+    if (socket.currentRoom) {
+      socket.leave(socket.currentRoom);
+      socket.currentRoom = null;
     }
 
-    #antiScreenshotShield {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #000000;
-      z-index: 999999;
-      color: #ef4444;
-      font-size: 18px;
-      font-weight: bold;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 8px;
+    if (socket.partner) {
+      socket.partner.emit('partner_disconnected');
+      socket.partner.partner = null;
+      socket.partner.inPersonalDM = false;
+      socket.partner = null;
     }
 
-    #watermarkOverlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      pointer-events: none;
-      z-index: 50;
-      opacity: 0.12;
-      background-image: repeating-linear-gradient(45deg, #ffffff, #ffffff 1px, transparent 2px, transparent 100px);
-      font-size: 14px;
-      color: #ffffff;
-      padding: 20px;
-      overflow: hidden;
+    if (waitingUser && waitingUser.id !== socket.id) {
+      socket.partner = waitingUser;
+      waitingUser.partner = socket;
+
+      saveLog(`<hr><b>CONNECTED:</b> [${formatUser(socket)}] &lt;---&gt; [${formatUser(waitingUser)}]<hr>`);
+
+      const socketShare = socket.profile && socket.profile.shareInfo ? {
+        name: socket.profile.name || 'Anonymous',
+        age: socket.profile.age || '',
+        fantasy: socket.profile.fantasy || ''
+      } : null;
+
+      const waitingShare = waitingUser.profile && waitingUser.profile.shareInfo ? {
+        name: waitingUser.profile.name || 'Anonymous',
+        age: waitingUser.profile.age || '',
+        fantasy: waitingUser.profile.fantasy || ''
+      } : null;
+
+      socket.emit('chat_start', {
+        msg: 'You are now connected with a partner. Say hi!',
+        partnerProfile: waitingShare
+      });
+
+      waitingUser.emit('chat_start', {
+        msg: 'You are now connected with a partner. Say hi!',
+        partnerProfile: socketShare
+      });
+
+      waitingUser = null;
+    } else {
+      waitingUser = socket;
+      socket.emit('waiting', 'Looking for someone to chat with...');
+    }
+  });
+
+  // Group Handlers
+  socket.on('join_group', (data) => {
+    socket.inPersonalDM = false;
+    if (socket.partner) {
+      socket.partner.emit('partner_disconnected');
+      socket.partner.partner = null;
+      socket.partner = null;
+    }
+    if (waitingUser && waitingUser.id === socket.id) {
+      waitingUser = null;
     }
 
-    #partner-info-bar {
-      display: none;
-      background: #191c2b;
-      padding: 10px 18px;
-      border-bottom: 1px solid #282e45;
-      font-size: 13.5px;
-      color: #cbd5e1;
-    }
-    #partner-info-bar b { color: #38bdf8; }
-    #partner-fantasy-text { color: #f472b6; font-style: italic; margin-top: 2px; }
-
-    #chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #0c0d11; position: relative; }
-    .msg { padding: 10px 16px; border-radius: 16px; max-width: 75%; word-break: break-word; font-size: 14.5px; line-height: 1.4; }
-    .msg-sender { font-size: 11px; color: #94a3b8; margin-bottom: 3px; font-weight: 600; }
-    .you { background: #2f3542; color: #ffffff; align-self: flex-end; border-bottom-right-radius: 4px; border: 1px solid #404556; }
-    .stranger { background: #1a1e2d; color: #e4e6eb; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #2b324a; }
-    .system { background: #171f1a; color: #4cd137; align-self: center; font-size: 0.85em; border-radius: 20px; padding: 5px 14px; border: 1px solid #1e3a24; text-align: center; }
-    
-    .chat-img {
-      max-width: 240px;
-      max-height: 240px;
-      border-radius: 10px;
-      display: block;
-      margin-top: 4px;
-      cursor: pointer;
+    if (socket.currentRoom) {
+      socket.leave(socket.currentRoom);
     }
 
-    .view-once-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: #3b2042;
-      border: 1px dashed #d946ef;
-      color: #f5d0fe;
-      padding: 8px 14px;
-      border-radius: 16px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      margin-top: 4px;
+    const roomId = data.roomId;
+    const groupName = data.groupName || roomId;
+    socket.currentRoom = roomId;
+    socket.join(roomId);
+
+    if (data.profile) socket.profile = data.profile;
+
+    const senderName = (socket.profile && socket.profile.name) ? socket.profile.name : 'A member';
+    saveLog(`<b>[GROUP: ${groupName}]</b> ${senderName} joined.`);
+
+    socket.emit('group_joined', { roomId, groupName });
+    socket.to(roomId).emit('group_system_msg', `${senderName} joined the group!`);
+  });
+
+  // DM Request System
+  socket.on('request_dm', () => {
+    if (socket.partner && !socket.inPersonalDM) {
+      const senderName = (socket.profile && socket.profile.name) ? socket.profile.name : 'Stranger';
+      socket.partner.emit('receive_dm_request', { senderName });
+    }
+  });
+
+  socket.on('respond_dm_request', (accepted) => {
+    if (socket.partner) {
+      if (accepted) {
+        socket.inPersonalDM = true;
+        socket.partner.inPersonalDM = true;
+
+        saveLog(`<b>[DM STARTED]:</b> [${formatUser(socket)}] & [${formatUser(socket.partner)}]`);
+
+        socket.emit('dm_status_update', { inDM: true, msg: 'DM Request Accepted! You are now in Personal DM. Photo sharing is now unlocked! 📸' });
+        socket.partner.emit('dm_status_update', { inDM: true, msg: 'DM Request Accepted! You are now in Personal DM. Photo sharing is now unlocked! 📸' });
+      } else {
+        socket.partner.emit('dm_request_declined');
+      }
+    }
+  });
+
+  // Text Message Handle
+  socket.on('send_message', (msg) => {
+    const sender = formatUser(socket);
+    const displayName = (socket.profile && socket.profile.name) ? socket.profile.name : 'Stranger';
+
+    if (socket.currentRoom) {
+      saveLog(`<b>[GROUP: ${socket.currentRoom}] ${sender}:</b> ${msg}`);
+      socket.to(socket.currentRoom).emit('receive_group_message', {
+        sender: displayName,
+        text: msg
+      });
+    } else if (socket.partner) {
+      const tag = socket.inPersonalDM ? 'PERSONAL DM' : '1-ON-1 MAIN';
+      saveLog(`<b>${tag} [${sender}]:</b> ${msg}`);
+      socket.partner.emit('receive_message', msg);
+    }
+  });
+
+  // Image Upload Handle (Sirf tab chalega jab DM active ho)
+  socket.on('send_image', (payload) => {
+    if (!socket.inPersonalDM) {
+      socket.emit('system_alert', 'Photos can only be shared inside Personal DM!');
+      return;
     }
 
-    #typingIndicator { font-size: 0.82em; color: #9ca3af; font-style: italic; min-height: 18px; margin-bottom: 6px; padding-left: 6px; }
+    const base64Data = payload.image;
+    const viewOnce = !!payload.viewOnce;
+    const sender = formatUser(socket);
+    const displayName = (socket.profile && socket.profile.name) ? socket.profile.name : 'Stranger';
 
-    #controls-container { padding: 12px 16px; background: #14161f; border-top: 1px solid #232635; }
-    #controls { display: flex; gap: 8px; align-items: center; }
-    
-    .btn-file-label {
-      background: #1c202e;
-      border: 1px solid #2d3246;
-      border-radius: 50%;
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      color: #94a3b8;
-      font-size: 20px;
-    }
-    .btn-file-label:hover { background: #282e42; color: #fff; }
-    #imageInput { display: none; }
+    const matches = base64Data.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
+    if (matches && matches.length === 3) {
+      const ext = matches[1].replace('jpeg', 'jpg');
+      const base64Content = matches[2];
+      const fileName = `img_${Date.now()}_${Math.floor(Math.random() * 1000)}.${ext}`;
+      const filePath = path.join(uploadsDir, fileName);
 
-    input[type="text"] { flex: 1; padding: 12px 18px; border: 1px solid #2d3246; border-radius: 24px; font-size: 14.5px; outline: none; background: #1c202e; color: #fff; }
-    input:focus { border-color: #70a1ff; }
-    input::placeholder { color: #6b7280; }
-    
-    .btn-send { background: #2ed573; color: white; padding: 10px 22px; border: none; border-radius: 24px; cursor: pointer; font-size: 14.5px; font-weight: 700; }
-    button:disabled, .disabled-btn { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
-
-    /* Modals */
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 999;
-    }
-    .modal-card {
-      background: #181a24; border: 1px solid #2d3246; border-radius: 16px; width: 90%; max-width: 400px; padding: 22px;
-    }
-    .modal-card h3 { font-size: 1.25rem; margin-bottom: 14px; color: #f1f2f6; }
-    .form-group { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
-    .form-group label { font-size: 13px; color: #94a3b8; font-weight: 500; }
-    .form-group input, .form-group textarea {
-      padding: 10px 14px; background: #0f1016; border: 1px solid #2d3246; border-radius: 8px; color: #fff; font-size: 14px; outline: none;
-    }
-    .form-group textarea { resize: none; height: 60px; }
-    .toggle-row { display: flex; align-items: center; gap: 10px; margin: 14px 0; font-size: 13px; color: #cbd5e1; }
-    .toggle-row input { width: 18px; height: 18px; accent-color: #2ed573; cursor: pointer; }
-    .modal-btn {
-      width: 100%; padding: 12px; background: #38bdf8; border: none; border-radius: 10px; color: #000; font-weight: 700; font-size: 15px; cursor: pointer;
+      fs.writeFile(filePath, base64Content, 'base64', (err) => {
+        if (!err) {
+          const imgTag = `<br><a href="/uploads/${fileName}" target="_blank"><img src="/uploads/${fileName}" style="max-width:180px; max-height:180px; border-radius:8px; margin:5px 0; border:1px solid #444;" /></a> ${viewOnce ? '<b>[VIEW ONCE]</b>' : ''}`;
+          saveLog(`<b>PERSONAL DM [${sender}] sent photo:</b> ${imgTag}`);
+        }
+      });
     }
 
-    /* In-Camera Photo Send Modal */
-    #imageSendModal .modal-card { text-align: center; }
-    #previewImgBox { max-width: 100%; max-height: 190px; border-radius: 10px; margin: 10px 0; border: 1px solid #334155; object-fit: contain; }
-    .img-option-btns { display: flex; gap: 10px; margin-top: 10px; }
-    .btn-send-normal { background: #3b82f6; color: #fff; flex: 1; padding: 11px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; }
-    .btn-send-viewonce { background: #d946ef; color: #fff; flex: 1; padding: 11px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; }
-
-    /* Single View Once Modal */
-    #viewOnceModal {
-      display: none;
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.96); z-index: 10000;
-      flex-direction: column; align-items: center; justify-content: center;
-    }
-    #viewOnceImg {
-      max-width: 85%; max-height: 75vh; border-radius: 12px; box-shadow: 0 0 25px rgba(0,0,0,0.8);
-      pointer-events: none; -webkit-touch-callout: none;
-    }
-    #viewOnceTimer {
-      margin-top: 15px; color: #ec4899; font-weight: bold; font-size: 16px;
-    }
-  </style>
-</head>
-<body>
-
-  <!-- Watermark overlay on private mode -->
-  <div id="watermarkOverlay">PROTECTED PRIVATE GROUP • DO NOT CAPTURE • TALK TO ME</div>
-
-  <!-- Anti-Screenshot Blackout Overlay -->
-  <div id="antiScreenshotShield">
-    <span>🛡 Screenshot / Recording Blocked</span>
-    <span style="font-size: 13px; color: #94a3b8;">This group has high security privacy active.</span>
-  </div>
-
-  <!-- View Once Modal Viewer -->
-  <div id="viewOnceModal">
-    <img id="viewOnceImg" src="" alt="Private Photo" />
-    <div id="viewOnceTimer">Disappearing in 5s...</div>
-  </div>
-
-  <!-- Camera Dialog (Normal vs View Once) -->
-  <div class="modal-overlay" id="imageSendModal" style="display: none;">
-    <div class="modal-card">
-      <h3>Send Photo</h3>
-      <img id="previewImgBox" src="" />
-      <p style="font-size: 13px; color: #94a3b8; margin-bottom: 10px;">Select how to send:</p>
-      <div class="img-option-btns">
-        <button class="btn-send-normal" id="sendNormalImgBtn">Normal View</button>
-        <button class="btn-send-viewonce" id="sendViewOnceImgBtn">View Once 1️⃣</button>
-      </div>
-      <button class="modal-btn" id="cancelImgBtn" style="background: transparent; color: #94a3b8; border: 1px solid #334155; margin-top: 10px; padding: 8px;">Cancel</button>
-    </div>
-  </div>
-
-  <!-- Profile Modal -->
-  <div class="modal-overlay" id="profileModal">
-    <div class="modal-card">
-      <h3>Set Your Profile</h3>
-      <div class="form-group">
-        <label>Name / Nickname</label>
-        <input type="text" id="profName" placeholder="e.g. Alex" />
-      </div>
-      <div class="form-group">
-        <label>Age</label>
-        <input type="number" id="profAge" placeholder="e.g. 21" min="13" max="99" />
-      </div>
-      <div class="form-group">
-        <label>Your Fantasy / Topic</label>
-        <textarea id="profFantasy" placeholder="What do you want to talk about?"></textarea>
-      </div>
-      <div class="toggle-row">
-        <input type="checkbox" id="profShare" checked />
-        <label for="profShare">Show my info in 1-on-1</label>
-      </div>
-      <button class="modal-btn" id="saveProfileBtn">Save & Start</button>
-    </div>
-  </div>
-
-  <!-- Create Group Modal -->
-  <div class="modal-overlay" id="groupModal" style="display: none;">
-    <div class="modal-card">
-      <h3>Create a Chat Group</h3>
-      <div class="form-group">
-        <label>Group Name</label>
-        <input type="text" id="groupNameInput" placeholder="e.g. Secret Room" />
-      </div>
-      <button class="modal-btn" id="startGroupBtn" style="background: #a855f7; color: #fff;">Create & Invite</button>
-      <button class="modal-btn" id="cancelGroupBtn" style="background: transparent; color: #94a3b8; border: 1px solid #334155; margin-top: 8px;">Cancel</button>
-    </div>
-  </div>
-
-  <header>
-    <div class="brand">
-      <h2>Talk to Me</h2>
-      <span class="room-badge" id="modeBadge">Random 1-on-1</span>
-    </div>
-    <div class="header-actions">
-      <label class="privacy-toggle-container" id="privacyToggleBox" title="Prevent screenshots & screen capture">
-        <input type="checkbox" id="privateModeCheck" />
-        <span>🔒 Private (Anti-Screenshot)</span>
-      </label>
-
-      <button class="btn-action" id="openProfileBtn">⚙ Profile</button>
-      <button class="btn-action btn-create-group" id="openGroupBtn">+ Create Group</button>
-      <button class="btn-action btn-invite-group" id="inviteGroupBtn">🔗 Share Link</button>
-      <button class="btn-action btn-next" id="nextBtn">Next</button>
-    </div>
-  </header>
-
-  <div id="partner-info-bar">
-    <div id="partner-basic-info"><b>Partner:</b> Anonymous</div>
-    <div id="partner-fantasy-text"></div>
-  </div>
-
-  <div id="chat-box"></div>
-
-  <div id="controls-container">
-    <div id="typingIndicator"></div>
-    <form id="controls">
-      <label for="imageInput" class="btn-file-label disabled-btn" id="fileBtnLabel" title="Upload Image">📷</label>
-      <input type="file" id="imageInput" accept="image/*" disabled />
-
-      <input type="text" id="msgInput" placeholder="Type a message..." disabled autocomplete="off" />
-      <button type="submit" class="btn-send" id="sendBtn" disabled>Send</button>
-    </form>
-  </div>
-
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-    const chatBox = document.getElementById('chat-box');
-    const msgInput = document.getElementById('msgInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const nextBtn = document.getElementById('nextBtn');
-    const form = document.getElementById('controls');
-    const typingIndicator = document.getElementById('typingIndicator');
-    const partnerInfoBar = document.getElementById('partner-info-bar');
-    const partnerBasicInfo = document.getElementById('partner-basic-info');
-    const partnerFantasyText = document.getElementById('partner-fantasy-text');
-    const modeBadge = document.getElementById('modeBadge');
-
-    const imageInput = document.getElementById('imageInput');
-    const fileBtnLabel = document.getElementById('fileBtnLabel');
-    const privacyToggleBox = document.getElementById('privacyToggleBox');
-    const privateModeCheck = document.getElementById('privateModeCheck');
-    const antiScreenshotShield = document.getElementById('antiScreenshotShield');
-    const watermarkOverlay = document.getElementById('watermarkOverlay');
-
-    const imageSendModal = document.getElementById('imageSendModal');
-    const previewImgBox = document.getElementById('previewImgBox');
-    const sendNormalImgBtn = document.getElementById('sendNormalImgBtn');
-    const sendViewOnceImgBtn = document.getElementById('sendViewOnceImgBtn');
-    const cancelImgBtn = document.getElementById('cancelImgBtn');
-
-    const viewOnceModal = document.getElementById('viewOnceModal');
-    const viewOnceImg = document.getElementById('viewOnceImg');
-    const viewOnceTimer = document.getElementById('viewOnceTimer');
-
-    const profileModal = document.getElementById('profileModal');
-    const saveProfileBtn = document.getElementById('saveProfileBtn');
-    const openProfileBtn = document.getElementById('openProfileBtn');
-    const profName = document.getElementById('profName');
-    const profAge = document.getElementById('profAge');
-    const profFantasy = document.getElementById('profFantasy');
-    const profShare = document.getElementById('profShare');
-
-    const groupModal = document.getElementById('groupModal');
-    const openGroupBtn = document.getElementById('openGroupBtn');
-    const groupNameInput = document.getElementById('groupNameInput');
-    const startGroupBtn = document.getElementById('startGroupBtn');
-    const cancelGroupBtn = document.getElementById('cancelGroupBtn');
-    const inviteGroupBtn = document.getElementById('inviteGroupBtn');
-
-    let currentMode = 'random';
-    let currentRoomId = null;
-    let currentGroupName = '';
-    let isGroupAdmin = false;
-    let isPrivateModeActive = false;
-    let pendingImageBase64 = null;
-    let typingTimeout;
-
-    let myProfile = {
-      name: localStorage.getItem('chat_name') || '',
-      age: localStorage.getItem('chat_age') || '',
-      fantasy: localStorage.getItem('chat_fantasy') || '',
-      shareInfo: localStorage.getItem('chat_share') !== 'false'
+    const outgoingData = {
+      sender: displayName,
+      image: base64Data,
+      viewOnce: viewOnce,
+      msgId: 'msg_' + Math.random().toString(36).substring(2, 9)
     };
 
-    profName.value = myProfile.name;
-    profAge.value = myProfile.age;
-    profFantasy.value = myProfile.fantasy;
-    profShare.checked = myProfile.shareInfo;
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const joinRoomParam = urlParams.get('room');
-    const joinNameParam = urlParams.get('name');
-
-    saveProfileBtn.addEventListener('click', () => {
-      myProfile.name = profName.value.trim() || 'Anonymous';
-      myProfile.age = profAge.value.trim();
-      myProfile.fantasy = profFantasy.value.trim();
-      myProfile.shareInfo = profShare.checked;
-
-      localStorage.setItem('chat_name', myProfile.name);
-      localStorage.setItem('chat_age', myProfile.age);
-      localStorage.setItem('chat_fantasy', myProfile.fantasy);
-      localStorage.setItem('chat_share', myProfile.shareInfo);
-
-      profileModal.style.display = 'none';
-      socket.emit('set_profile', myProfile);
-
-      if (joinRoomParam) {
-        joinCustomGroup(joinRoomParam, joinNameParam || 'Custom Group', false);
-      } else {
-        startRandomChat();
-      }
-    });
-
-    openProfileBtn.addEventListener('click', () => {
-      profileModal.style.display = 'flex';
-    });
-
-    openGroupBtn.addEventListener('click', () => {
-      groupModal.style.display = 'flex';
-    });
-    cancelGroupBtn.addEventListener('click', () => {
-      groupModal.style.display = 'none';
-    });
-
-    startGroupBtn.addEventListener('click', () => {
-      const gName = groupNameInput.value.trim() || 'My Group';
-      const roomId = 'room_' + Math.random().toString(36).substring(2, 9);
-      groupModal.style.display = 'none';
-      joinCustomGroup(roomId, gName, true);
-    });
-
-    function setChatEnabled(enabled) {
-      msgInput.disabled = !enabled;
-      sendBtn.disabled = !enabled;
-      imageInput.disabled = !enabled;
-      if (enabled) {
-        fileBtnLabel.classList.remove('disabled-btn');
-      } else {
-        fileBtnLabel.classList.add('disabled-btn');
-      }
+    if (socket.partner) {
+      socket.partner.emit('receive_image', outgoingData);
     }
+  });
 
-    function joinCustomGroup(roomId, gName, isAdmin) {
-      currentMode = 'group';
-      currentRoomId = roomId;
-      currentGroupName = gName;
-      isGroupAdmin = isAdmin;
-
-      chatBox.innerHTML = '';
-      partnerInfoBar.style.display = 'none';
-      modeBadge.innerText = `Group: ${gName}`;
-      modeBadge.style.color = '#a855f7';
-      inviteGroupBtn.style.display = 'inline-block';
-      nextBtn.innerText = 'Leave Group';
-
-      if (isGroupAdmin) {
-        privacyToggleBox.style.display = 'flex';
-        privateModeCheck.disabled = false;
-      } else {
-        privacyToggleBox.style.display = 'none';
-      }
-
-      socket.emit('join_group', { roomId, groupName: gName, profile: myProfile });
-      setChatEnabled(true);
-      msgInput.focus();
+  socket.on('typing', (status) => {
+    if (socket.currentRoom) {
+      const displayName = (socket.profile && socket.profile.name) ? socket.profile.name : 'Someone';
+      socket.to(socket.currentRoom).emit('group_typing', { sender: displayName, status });
+    } else if (socket.partner) {
+      socket.partner.emit('stranger_typing', status);
     }
+  });
 
-    privateModeCheck.addEventListener('change', () => {
-      socket.emit('toggle_privacy_mode', privateModeCheck.checked);
-    });
-
-    socket.on('privacy_mode_updated', (active) => {
-      isPrivateModeActive = active;
-      if (active) {
-        document.body.classList.add('private-locked');
-        watermarkOverlay.style.display = 'block';
-        addMessage('🔒 Private Mode Activated: Anti-screenshot guard & watermarking enabled.', 'system');
-      } else {
-        document.body.classList.remove('private-locked');
-        watermarkOverlay.style.display = 'none';
-        addMessage('🔓 Private Mode Deactivated.', 'system');
-      }
-    });
-
-    // Anti-screenshot triggers: keyboard shortcuts, PrintScreen, blur
-    window.addEventListener('keyup', (e) => {
-      if (isPrivateModeActive && (e.key === 'PrintScreen' || e.keyCode === 44)) {
-        antiScreenshotShield.style.display = 'flex';
-        setTimeout(() => antiScreenshotShield.style.display = 'none', 1800);
-      }
-    });
-
-    window.addEventListener('keydown', (e) => {
-      if (isPrivateModeActive) {
-        // Blocks Ctrl+P, Ctrl+S, Win+Shift+S (Snipping tool)
-        if ((e.ctrlKey && (e.key === 'p' || e.key === 's')) || (e.shiftKey && e.metaKey && e.key === 's')) {
-          e.preventDefault();
-          antiScreenshotShield.style.display = 'flex';
-          setTimeout(() => antiScreenshotShield.style.display = 'none', 1500);
-        }
-      }
-    });
-
-    // Window blur: triggers when user tries to open phone screenshot drawer or PC snipping tool
-    window.addEventListener('blur', () => {
-      if (isPrivateModeActive) {
-        antiScreenshotShield.style.display = 'flex';
-      }
-    });
-    window.addEventListener('focus', () => {
-      antiScreenshotShield.style.display = 'none';
-    });
-
-    // Context menu / long press save block
-    document.addEventListener('contextmenu', (e) => {
-      if (isPrivateModeActive) e.preventDefault();
-    });
-
-    inviteGroupBtn.addEventListener('click', () => {
-      const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${currentRoomId}&name=${encodeURIComponent(currentGroupName)}`;
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(inviteUrl);
-        alert('Group Invite Link copied to clipboard!');
-      } else {
-        prompt('Copy this link to invite members:', inviteUrl);
-      }
-    });
-
-    function addMessage(text, type, senderName = '') {
-      const div = document.createElement('div');
-      div.className = `msg ${type}`;
-      if (senderName && type === 'stranger') {
-        const span = document.createElement('div');
-        span.className = 'msg-sender';
-        span.innerText = senderName;
-        div.appendChild(span);
-      }
-      const textNode = document.createTextNode(text);
-      div.appendChild(textNode);
-      chatBox.appendChild(div);
-      chatBox.scrollTop = chatBox.scrollHeight;
+  const handleLeave = () => {
+    if (waitingUser && waitingUser.id === socket.id) {
+      waitingUser = null;
     }
-
-    function addImageMessage(data, type, senderName = '') {
-      const div = document.createElement('div');
-      div.className = `msg ${type}`;
-      if (senderName && type === 'stranger') {
-        const span = document.createElement('div');
-        span.className = 'msg-sender';
-        span.innerText = senderName;
-        div.appendChild(span);
-      }
-
-      if (data.viewOnce) {
-        if (type === 'you') {
-          div.innerHTML += `<div>📷 <i>You sent a View Once photo</i></div>`;
-        } else {
-          const btn = document.createElement('button');
-          btn.className = 'view-once-btn';
-          btn.innerHTML = `👁 View Photo (Once)`;
-          btn.onclick = () => openViewOncePhoto(data.image, div, btn);
-          div.appendChild(btn);
-        }
-      } else {
-        const img = document.createElement('img');
-        img.src = data.image;
-        img.className = 'chat-img';
-        img.onclick = () => window.open(data.image, '_blank');
-        div.appendChild(img);
-      }
-
-      chatBox.appendChild(div);
-      chatBox.scrollTop = chatBox.scrollHeight;
+    if (socket.partner) {
+      saveLog(`<i>DISCONNECTED: [${formatUser(socket)}] left.</i>`);
+      socket.partner.emit('partner_disconnected');
+      socket.partner.partner = null;
+      socket.partner.inPersonalDM = false;
+      socket.partner = null;
     }
-
-    function openViewOncePhoto(imgSrc, containerDiv, buttonElem) {
-      viewOnceImg.src = imgSrc;
-      viewOnceModal.style.display = 'flex';
-      buttonElem.remove();
-
-      let timeLeft = 5;
-      viewOnceTimer.innerText = `Disappearing in ${timeLeft}s...`;
-
-      const countdown = setInterval(() => {
-        timeLeft--;
-        if (timeLeft > 0) {
-          viewOnceTimer.innerText = `Disappearing in ${timeLeft}s...`;
-        } else {
-          clearInterval(countdown);
-          viewOnceModal.style.display = 'none';
-          viewOnceImg.src = '';
-          containerDiv.innerHTML = `<span style="color:#888; font-style:italic;">🔒 Photo opened and expired</span>`;
-        }
-      }, 1000);
+    if (socket.currentRoom) {
+      const senderName = (socket.profile && socket.profile.name) ? socket.profile.name : 'A member';
+      socket.to(socket.currentRoom).emit('group_system_msg', `${senderName} left the group.`);
+      socket.leave(socket.currentRoom);
+      socket.currentRoom = null;
     }
+  };
 
-    // Camera Icon Click Flow: Opens modal preview with Normal vs View Once options
-    imageInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+  socket.on('disconnect', handleLeave);
+  socket.on('leave_chat', handleLeave);
+});
 
-      if (file.size > 3 * 1024 * 1024) {
-        alert('Please choose an image under 3MB');
-        imageInput.value = '';
-        return;
-      }
+app.get('/view-logs', (req, res) => {
+  const filePath = path.join(__dirname, 'chats.html');
+  if (fs.existsSync(filePath)) {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Live Chat & Image Logs</title>
+        <style>
+          body { background: #111; color: #eee; font-family: sans-serif; padding: 20px; font-size: 14px; line-height: 1.5; }
+          hr { border: 0; border-top: 1px solid #333; margin: 10px 0; }
+          b { color: #38bdf8; }
+          a { color: #f472b6; text-decoration: none; }
+        </style>
+      </head>
+      <body>
+        <h2>Live Chats & Images</h2>
+        <div id="logs">${content}</div>
+      </body>
+      </html>
+    `);
+  } else {
+    res.send('Abhi tak koi chat ya photo share nahi hui hai.');
+  }
+});
 
-      const reader = new FileReader();
-      reader.onload = function(event) {
-        pendingImageBase64 = event.target.result;
-        previewImgBox.src = pendingImageBase64;
-        imageSendModal.style.display = 'flex';
-      };
-      reader.readAsDataURL(file);
-      imageInput.value = '';
-    });
-
-    sendNormalImgBtn.addEventListener('click', () => {
-      if (!pendingImageBase64) return;
-      socket.emit('send_image', { image: pendingImageBase64, viewOnce: false });
-      addImageMessage({ image: pendingImageBase64, viewOnce: false }, 'you');
-      imageSendModal.style.display = 'none';
-      pendingImageBase64 = null;
-    });
-
-    sendViewOnceImgBtn.addEventListener('click', () => {
-      if (!pendingImageBase64) return;
-      socket.emit('send_image', { image: pendingImageBase64, viewOnce: true });
-      addImageMessage({ image: pendingImageBase64, viewOnce: true }, 'you');
-      imageSendModal.style.display = 'none';
-      pendingImageBase64 = null;
-    });
-
-    cancelImgBtn.addEventListener('click', () => {
-      imageSendModal.style.display = 'none';
-      pendingImageBase64 = null;
-    });
-
-    function startRandomChat() {
-      currentMode = 'random';
-      currentRoomId = null;
-      isGroupAdmin = false;
-      isPrivateModeActive = false;
-      document.body.classList.remove('private-locked');
-      watermarkOverlay.style.display = 'none';
-      privacyToggleBox.style.display = 'none';
-      inviteGroupBtn.style.display = 'none';
-      modeBadge.innerText = 'Random 1-on-1';
-      modeBadge.style.color = '#38bdf8';
-      nextBtn.innerText = 'Next Stranger';
-
-      chatBox.innerHTML = '';
-      partnerInfoBar.style.display = 'none';
-      typingIndicator.innerText = '';
-      setChatEnabled(false);
-
-      window.history.replaceState({}, document.title, window.location.pathname);
-      socket.emit('find_partner', myProfile);
-    }
-
-    nextBtn.addEventListener('click', () => {
-      startRandomChat();
-    });
-
-    socket.on('waiting', (msg) => {
-      addMessage(msg, 'system');
-    });
-
-    socket.on('group_joined', (data) => {
-      addMessage(`Welcome to "${data.groupName}"! Click "Share Link" to invite friends.`, 'system');
-    });
-
-    socket.on('group_system_msg', (msg) => {
-      addMessage(msg, 'system');
-    });
-
-    socket.on('chat_start', (data) => {
-      addMessage(data.msg, 'system');
-      setChatEnabled(true);
-      msgInput.focus();
-
-      if (data.partnerProfile) {
-        partnerInfoBar.style.display = 'block';
-        let infoStr = `<b>Partner:</b> ${data.partnerProfile.name}`;
-        if (data.partnerProfile.age) infoStr += ` (${data.partnerProfile.age} yrs)`;
-        partnerBasicInfo.innerHTML = infoStr;
-
-        if (data.partnerProfile.fantasy) {
-          partnerFantasyText.innerText = `Fantasy / Interest: "${data.partnerProfile.fantasy}"`;
-        } else {
-          partnerFantasyText.innerText = '';
-        }
-      } else {
-        partnerInfoBar.style.display = 'block';
-        partnerBasicInfo.innerHTML = `<b>Partner:</b> <i>Anonymous (kept private)</i>`;
-        partnerFantasyText.innerText = '';
-      }
-    });
-
-    socket.on('receive_message', (msg) => {
-      typingIndicator.innerText = '';
-      addMessage(msg, 'stranger');
-    });
-
-    socket.on('receive_image', (payload) => {
-      typingIndicator.innerText = '';
-      addImageMessage(payload, 'stranger');
-    });
-
-    socket.on('receive_group_message', (data) => {
-      typingIndicator.innerText = '';
-      addMessage(data.text, 'stranger', data.sender);
-    });
-
-    socket.on('receive_group_image', (data) => {
-      typingIndicator.innerText = '';
-      addImageMessage(data, 'stranger', data.sender);
-    });
-
-    socket.on('stranger_typing', (isTyping) => {
-      typingIndicator.innerText = isTyping ? "Stranger is typing..." : "";
-    });
-
-    socket.on('group_typing', (data) => {
-      typingIndicator.innerText = data.status ? `${data.sender} is typing...` : "";
-    });
-
-    socket.on('partner_disconnected', () => {
-      addMessage('Stranger has disconnected.', 'system');
-      partnerInfoBar.style.display = 'none';
-      typingIndicator.innerText = '';
-      setChatEnabled(false);
-    });
-
-    msgInput.addEventListener('input', () => {
-      socket.emit('typing', true);
-      clearTimeout(typingTimeout);
-      typingTimeout = setTimeout(() => {
-        socket.emit('typing', false);
-      }, 1000);
-    });
-
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const text = msgInput.value.trim();
-      if (!text) return;
-      socket.emit('typing', false);
-      socket.emit('send_message', text);
-      addMessage(text, 'you');
-      msgInput.value = '';
-    });
-  </script>
-</body>
-</html>
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
