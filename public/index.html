@@ -13,7 +13,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
     body { display: flex; flex-direction: column; height: 100vh; background: #0c0d11; color: #ffffff; overflow: hidden; }
     
-    /* Welcome Flying Kiss Animation Overlay */
+    /* Welcome Animation Overlay */
     #welcomeAnimationOverlay {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
@@ -112,56 +112,18 @@
     .btn-invite-group { background: #10b981; border: none; color: #fff; display: none; }
     .btn-next { background: #ff4757; color: #ffffff; border: none; }
 
-    .privacy-toggle-container {
-      display: none;
-      align-items: center;
-      gap: 6px;
-      background: #1e2230;
-      padding: 5px 12px;
-      border-radius: 18px;
-      font-size: 12px;
-      border: 1px solid #2e3448;
-    }
-    .privacy-toggle-container input { accent-color: #ec4899; cursor: pointer; }
-
-    .private-locked {
-      user-select: none !important;
-      -webkit-user-select: none !important;
-      -webkit-touch-callout: none !important;
-    }
-    .private-locked img {
-      pointer-events: none !important;
-      -webkit-user-drag: none !important;
-    }
-
-    #antiScreenshotShield {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #000000;
-      z-index: 999999;
-      color: #ef4444;
-      font-size: 18px;
-      font-weight: bold;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    #watermarkOverlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      pointer-events: none;
-      z-index: 50;
-      opacity: 0.12;
-      background-image: repeating-linear-gradient(45deg, #ffffff, #ffffff 1px, transparent 2px, transparent 100px);
-      font-size: 14px;
+    /* Request DM Button */
+    .btn-request-dm {
+      background: #ec4899;
+      border: none;
       color: #ffffff;
-      padding: 20px;
-      overflow: hidden;
+      padding: 7px 13px;
+      border-radius: 18px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
     }
+    .btn-request-dm:hover { background: #db2777; }
 
     #partner-info-bar {
       display: none;
@@ -228,6 +190,13 @@
     .btn-file-label:hover, .btn-input-icon:hover { background: #282e42; color: #fff; }
     #imageInput { display: none; }
 
+    /* Disabled state for Camera in Main Chat */
+    .photo-locked {
+      opacity: 0.3 !important;
+      cursor: not-allowed !important;
+      pointer-events: auto !important;
+    }
+
     input[type="text"] { flex: 1; padding: 12px 18px; border: 1px solid #2d3246; border-radius: 24px; font-size: 14.5px; outline: none; background: #1c202e; color: #fff; }
     input:focus { border-color: #70a1ff; }
     input::placeholder { color: #6b7280; }
@@ -256,6 +225,12 @@
       width: 100%; padding: 12px; background: #38bdf8; border: none; border-radius: 10px; color: #000; font-weight: 700; font-size: 15px; cursor: pointer;
     }
 
+    /* DM Request Popup */
+    #dmRequestModal .modal-card { text-align: center; }
+    .dm-action-btns { display: flex; gap: 10px; margin-top: 14px; }
+    .btn-dm-accept { background: #10b981; color: white; flex: 1; padding: 10px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+    .btn-dm-decline { background: #ef4444; color: white; flex: 1; padding: 10px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+
     #imageSendModal .modal-card { text-align: center; }
     #previewImgBox { max-width: 100%; max-height: 190px; border-radius: 10px; margin: 10px 0; border: 1px solid #334155; object-fit: contain; }
     .img-option-btns { display: flex; gap: 10px; margin-top: 10px; }
@@ -279,7 +254,7 @@
 </head>
 <body>
 
-  <!-- Welcome Animated Girl Flying Kiss -->
+  <!-- Welcome Animation -->
   <div id="welcomeAnimationOverlay">
     <div class="kiss-character-box">
       <span>👩‍🦰</span>
@@ -288,18 +263,25 @@
     <div class="welcome-text">Talk to Me</div>
   </div>
 
-  <div id="watermarkOverlay">PROTECTED PRIVATE GROUP • DO NOT CAPTURE • TALK TO ME</div>
-
-  <div id="antiScreenshotShield">
-    <span>🛡 Screenshot / Recording Blocked</span>
-    <span style="font-size: 13px; color: #94a3b8;">This group has high security privacy active.</span>
-  </div>
-
+  <!-- View Once Modal Viewer -->
   <div id="viewOnceModal">
     <img id="viewOnceImg" src="" alt="Private Photo" />
     <div id="viewOnceTimer">Disappearing in 5s...</div>
   </div>
 
+  <!-- DM Request Acceptance Modal -->
+  <div class="modal-overlay" id="dmRequestModal" style="display: none;">
+    <div class="modal-card">
+      <h3>💌 Personal DM Request</h3>
+      <p id="dmRequestText" style="font-size: 14px; color: #cbd5e1; margin-top: 8px;">Stranger wants to connect in Personal DM where photo sharing is unlocked.</p>
+      <div class="dm-action-btns">
+        <button class="btn-dm-accept" id="acceptDmBtn">Accept & DM</button>
+        <button class="btn-dm-decline" id="declineDmBtn">Decline</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Photo Send Options Modal -->
   <div class="modal-overlay" id="imageSendModal" style="display: none;">
     <div class="modal-card">
       <h3>Send Photo</h3>
@@ -313,7 +295,7 @@
     </div>
   </div>
 
-  <!-- Profile Modal (Default Hidden) -->
+  <!-- Profile Modal -->
   <div class="modal-overlay" id="profileModal" style="display: none;">
     <div class="modal-card">
       <h3>Optional Profile & Fantasy</h3>
@@ -344,7 +326,7 @@
       <h3>Create a Chat Group</h3>
       <div class="form-group">
         <label>Group Name</label>
-        <input type="text" id="groupNameInput" placeholder="e.g. Secret Room" />
+        <input type="text" id="groupNameInput" placeholder="e.g. Friends Club" />
       </div>
       <button class="modal-btn" id="startGroupBtn" style="background: #a855f7; color: #fff;">Create & Invite</button>
       <button class="modal-btn" id="cancelGroupBtn" style="background: transparent; color: #94a3b8; border: 1px solid #334155; margin-top: 8px;">Cancel</button>
@@ -357,10 +339,8 @@
       <span class="room-badge" id="modeBadge">Random 1-on-1</span>
     </div>
     <div class="header-actions">
-      <label class="privacy-toggle-container" id="privacyToggleBox" title="Prevent screenshots & screen capture">
-        <input type="checkbox" id="privateModeCheck" />
-        <span>🔒 Private (Anti-Screenshot)</span>
-      </label>
+      <!-- Request DM Button -->
+      <button class="btn-request-dm" id="requestDmBtn">💌 Request DM</button>
 
       <button class="btn-action btn-create-group" id="openGroupBtn">+ Create Group</button>
       <button class="btn-action btn-invite-group" id="inviteGroupBtn">🔗 Share Link</button>
@@ -378,12 +358,12 @@
   <div id="controls-container">
     <div id="typingIndicator"></div>
     <form id="controls">
-      <label for="imageInput" class="btn-file-label disabled-btn" id="fileBtnLabel" title="Upload Image">📷</label>
+      <!-- Camera Icon: Locked by default in Main Chat -->
+      <label for="imageInput" class="btn-file-label photo-locked" id="fileBtnLabel" title="Photos are only allowed in Personal DM">📷</label>
       <input type="file" id="imageInput" accept="image/*" disabled />
 
       <input type="text" id="msgInput" placeholder="Type a message..." disabled autocomplete="off" />
 
-      <!-- Profile & Fantasy Setup icon on the right of input bar -->
       <button type="button" class="btn-input-icon" id="openProfileBtn" title="Set Profile & Fantasy">⚙</button>
 
       <button type="submit" class="btn-send" id="sendBtn" disabled>Send</button>
@@ -392,7 +372,6 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    // Fade out welcome animation after 2.8s
     window.addEventListener('load', () => {
       setTimeout(() => {
         const overlay = document.getElementById('welcomeAnimationOverlay');
@@ -418,10 +397,12 @@
 
     const imageInput = document.getElementById('imageInput');
     const fileBtnLabel = document.getElementById('fileBtnLabel');
-    const privacyToggleBox = document.getElementById('privacyToggleBox');
-    const privateModeCheck = document.getElementById('privateModeCheck');
-    const antiScreenshotShield = document.getElementById('antiScreenshotShield');
-    const watermarkOverlay = document.getElementById('watermarkOverlay');
+    const requestDmBtn = document.getElementById('requestDmBtn');
+
+    const dmRequestModal = document.getElementById('dmRequestModal');
+    const dmRequestText = document.getElementById('dmRequestText');
+    const acceptDmBtn = document.getElementById('acceptDmBtn');
+    const declineDmBtn = document.getElementById('declineDmBtn');
 
     const imageSendModal = document.getElementById('imageSendModal');
     const previewImgBox = document.getElementById('previewImgBox');
@@ -452,8 +433,7 @@
     let currentMode = 'random';
     let currentRoomId = null;
     let currentGroupName = '';
-    let isGroupAdmin = false;
-    let isPrivateModeActive = false;
+    let inPersonalDM = false;
     let pendingImageBase64 = null;
     let typingTimeout;
 
@@ -473,9 +453,8 @@
     const joinRoomParam = urlParams.get('room');
     const joinNameParam = urlParams.get('name');
 
-    // Auto connect immediately without blocking
     if (joinRoomParam) {
-      joinCustomGroup(joinRoomParam, joinNameParam || 'Custom Group', false);
+      joinCustomGroup(joinRoomParam, joinNameParam || 'Custom Group');
     } else {
       startRandomChat();
     }
@@ -514,91 +493,56 @@
       const gName = groupNameInput.value.trim() || 'My Group';
       const roomId = 'room_' + Math.random().toString(36).substring(2, 9);
       groupModal.style.display = 'none';
-      joinCustomGroup(roomId, gName, true);
+      joinCustomGroup(roomId, gName);
     });
 
     function setChatEnabled(enabled) {
       msgInput.disabled = !enabled;
       sendBtn.disabled = !enabled;
-      imageInput.disabled = !enabled;
-      if (enabled) {
-        fileBtnLabel.classList.remove('disabled-btn');
-      } else {
-        fileBtnLabel.classList.add('disabled-btn');
+      if (!enabled) {
+        setPhotoSharing(false);
       }
     }
 
-    function joinCustomGroup(roomId, gName, isAdmin) {
+    function setPhotoSharing(allow) {
+      inPersonalDM = allow;
+      imageInput.disabled = !allow;
+      if (allow) {
+        fileBtnLabel.classList.remove('photo-locked');
+        fileBtnLabel.title = "Upload Photo";
+      } else {
+        fileBtnLabel.classList.add('photo-locked');
+        fileBtnLabel.title = "Photos are locked. Request DM to share photos.";
+      }
+    }
+
+    // Inform user when tapping locked camera in main chat
+    fileBtnLabel.addEventListener('click', (e) => {
+      if (!inPersonalDM) {
+        e.preventDefault();
+        alert('Photo sharing is disabled in Main Chat. Click "💌 Request DM" to move to Personal DM!');
+      }
+    });
+
+    function joinCustomGroup(roomId, gName) {
       currentMode = 'group';
       currentRoomId = roomId;
       currentGroupName = gName;
-      isGroupAdmin = isAdmin;
+      inPersonalDM = false;
 
       chatBox.innerHTML = '';
       partnerInfoBar.style.display = 'none';
       modeBadge.innerText = `Group: ${gName}`;
       modeBadge.style.color = '#a855f7';
       inviteGroupBtn.style.display = 'inline-block';
+      requestDmBtn.style.display = 'none'; // No 1-on-1 DM request in group
       nextBtn.innerText = 'Leave Group';
-
-      if (isGroupAdmin) {
-        privacyToggleBox.style.display = 'flex';
-        privateModeCheck.disabled = false;
-      } else {
-        privacyToggleBox.style.display = 'none';
-      }
 
       socket.emit('join_group', { roomId, groupName: gName, profile: myProfile });
       setChatEnabled(true);
+      setPhotoSharing(false);
       msgInput.focus();
     }
-
-    privateModeCheck.addEventListener('change', () => {
-      socket.emit('toggle_privacy_mode', privateModeCheck.checked);
-    });
-
-    socket.on('privacy_mode_updated', (active) => {
-      isPrivateModeActive = active;
-      if (active) {
-        document.body.classList.add('private-locked');
-        watermarkOverlay.style.display = 'block';
-        addMessage('🔒 Private Mode Activated: Anti-screenshot guard & watermarking enabled.', 'system');
-      } else {
-        document.body.classList.remove('private-locked');
-        watermarkOverlay.style.display = 'none';
-        addMessage('🔓 Private Mode Deactivated.', 'system');
-      }
-    });
-
-    window.addEventListener('keyup', (e) => {
-      if (isPrivateModeActive && (e.key === 'PrintScreen' || e.keyCode === 44)) {
-        antiScreenshotShield.style.display = 'flex';
-        setTimeout(() => antiScreenshotShield.style.display = 'none', 1800);
-      }
-    });
-
-    window.addEventListener('keydown', (e) => {
-      if (isPrivateModeActive) {
-        if ((e.ctrlKey && (e.key === 'p' || e.key === 's')) || (e.shiftKey && e.metaKey && e.key === 's')) {
-          e.preventDefault();
-          antiScreenshotShield.style.display = 'flex';
-          setTimeout(() => antiScreenshotShield.style.display = 'none', 1500);
-        }
-      }
-    });
-
-    window.addEventListener('blur', () => {
-      if (isPrivateModeActive) {
-        antiScreenshotShield.style.display = 'flex';
-      }
-    });
-    window.addEventListener('focus', () => {
-      antiScreenshotShield.style.display = 'none';
-    });
-
-    document.addEventListener('contextmenu', (e) => {
-      if (isPrivateModeActive) e.preventDefault();
-    });
 
     inviteGroupBtn.addEventListener('click', () => {
       const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${currentRoomId}&name=${encodeURIComponent(currentGroupName)}`;
@@ -608,6 +552,48 @@
       } else {
         prompt('Copy this link to invite members:', inviteUrl);
       }
+    });
+
+    // DM Request Flow
+    requestDmBtn.addEventListener('click', () => {
+      if (inPersonalDM) {
+        alert('You are already in Personal DM!');
+        return;
+      }
+      socket.emit('request_dm');
+      addMessage('💌 You sent a Personal DM request to your partner. Waiting for acceptance...', 'system');
+    });
+
+    socket.on('receive_dm_request', (data) => {
+      dmRequestText.innerText = `${data.senderName} wants to move to Personal DM where photo sharing is unlocked. Do you accept?`;
+      dmRequestModal.style.display = 'flex';
+    });
+
+    acceptDmBtn.addEventListener('click', () => {
+      dmRequestModal.style.display = 'none';
+      socket.emit('respond_dm_request', true);
+    });
+
+    declineDmBtn.addEventListener('click', () => {
+      dmRequestModal.style.display = 'none';
+      socket.emit('respond_dm_request', false);
+    });
+
+    socket.on('dm_request_declined', () => {
+      addMessage('Your partner declined the DM request.', 'system');
+    });
+
+    socket.on('dm_status_update', (data) => {
+      inPersonalDM = data.inDM;
+      modeBadge.innerText = '💌 Personal DM';
+      modeBadge.style.color = '#ec4899';
+      requestDmBtn.style.display = 'none';
+      setPhotoSharing(true);
+      addMessage(data.msg, 'system');
+    });
+
+    socket.on('system_alert', (msg) => {
+      alert(msg);
     });
 
     function addMessage(text, type, senderName = '') {
@@ -682,6 +668,12 @@
       const file = e.target.files[0];
       if (!file) return;
 
+      if (!inPersonalDM) {
+        alert('Photos can only be shared inside Personal DM!');
+        imageInput.value = '';
+        return;
+      }
+
       if (file.size > 3 * 1024 * 1024) {
         alert('Please choose an image under 3MB');
         imageInput.value = '';
@@ -722,12 +714,10 @@
     function startRandomChat() {
       currentMode = 'random';
       currentRoomId = null;
-      isGroupAdmin = false;
-      isPrivateModeActive = false;
-      document.body.classList.remove('private-locked');
-      watermarkOverlay.style.display = 'none';
-      privacyToggleBox.style.display = 'none';
+      inPersonalDM = false;
+
       inviteGroupBtn.style.display = 'none';
+      requestDmBtn.style.display = 'inline-block';
       modeBadge.innerText = 'Random 1-on-1';
       modeBadge.style.color = '#38bdf8';
       nextBtn.innerText = 'Next Stranger';
@@ -736,6 +726,7 @@
       partnerInfoBar.style.display = 'none';
       typingIndicator.innerText = '';
       setChatEnabled(false);
+      setPhotoSharing(false);
 
       window.history.replaceState({}, document.title, window.location.pathname);
       socket.emit('find_partner', myProfile);
@@ -760,6 +751,7 @@
     socket.on('chat_start', (data) => {
       addMessage(data.msg, 'system');
       setChatEnabled(true);
+      setPhotoSharing(false);
       msgInput.focus();
 
       if (data.partnerProfile) {
@@ -795,11 +787,6 @@
       addMessage(data.text, 'stranger', data.sender);
     });
 
-    socket.on('receive_group_image', (data) => {
-      typingIndicator.innerText = '';
-      addImageMessage(data, 'stranger', data.sender);
-    });
-
     socket.on('stranger_typing', (isTyping) => {
       typingIndicator.innerText = isTyping ? "Stranger is typing..." : "";
     });
@@ -812,7 +799,9 @@
       addMessage('Stranger has disconnected.', 'system');
       partnerInfoBar.style.display = 'none';
       typingIndicator.innerText = '';
+      inPersonalDM = false;
       setChatEnabled(false);
+      setPhotoSharing(false);
     });
 
     msgInput.addEventListener('input', () => {
