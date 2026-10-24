@@ -13,7 +13,21 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
     body { display: flex; flex-direction: column; height: 100vh; background: #0c0d11; color: #ffffff; overflow: hidden; }
     
-    /* Welcome Animation Overlay */
+    /* Compliance & Warning Banner */
+    #safetyWarningBar {
+      background: #1e131d;
+      border-bottom: 1px solid #4a1525;
+      color: #fda4af;
+      font-size: 11.5px;
+      padding: 6px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      line-height: 1.3;
+    }
+    #safetyWarningBar a { color: #f43f5e; text-decoration: underline; cursor: pointer; }
+
+    /* Welcome Animation */
     #welcomeAnimationOverlay {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
@@ -69,7 +83,7 @@
 
     header { 
       background: #14161f; 
-      padding: 12px 18px; 
+      padding: 10px 18px; 
       display: flex; 
       justify-content: space-between; 
       align-items: center; 
@@ -112,7 +126,6 @@
     .btn-invite-group { background: #10b981; border: none; color: #fff; display: none; }
     .btn-next { background: #ff4757; color: #ffffff; border: none; }
 
-    /* Request DM Button */
     .btn-request-dm {
       background: #ec4899;
       border: none;
@@ -123,7 +136,18 @@
       font-weight: 600;
       cursor: pointer;
     }
-    .btn-request-dm:hover { background: #db2777; }
+
+    .btn-report {
+      background: #7f1d1d;
+      border: 1px solid #991b1b;
+      color: #fca5a5;
+      padding: 7px 11px;
+      border-radius: 18px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-report:hover { background: #991b1b; color: #fff; }
 
     #partner-info-bar {
       display: none;
@@ -190,7 +214,6 @@
     .btn-file-label:hover, .btn-input-icon:hover { background: #282e42; color: #fff; }
     #imageInput { display: none; }
 
-    /* Disabled state for Camera in Main Chat */
     .photo-locked {
       opacity: 0.3 !important;
       cursor: not-allowed !important;
@@ -207,25 +230,24 @@
     /* Modals */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 999;
+      background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 999;
     }
     .modal-card {
-      background: #181a24; border: 1px solid #2d3246; border-radius: 16px; width: 90%; max-width: 400px; padding: 22px;
+      background: #181a24; border: 1px solid #2d3246; border-radius: 16px; width: 90%; max-width: 420px; padding: 22px;
     }
-    .modal-card h3 { font-size: 1.25rem; margin-bottom: 14px; color: #f1f2f6; }
+    .modal-card h3 { font-size: 1.25rem; margin-bottom: 12px; color: #f1f2f6; }
     .form-group { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
     .form-group label { font-size: 13px; color: #94a3b8; font-weight: 500; }
-    .form-group input, .form-group textarea {
+    .form-group input, .form-group textarea, .form-group select {
       padding: 10px 14px; background: #0f1016; border: 1px solid #2d3246; border-radius: 8px; color: #fff; font-size: 14px; outline: none;
     }
     .form-group textarea { resize: none; height: 60px; }
     .toggle-row { display: flex; align-items: center; gap: 10px; margin: 14px 0; font-size: 13px; color: #cbd5e1; }
     .toggle-row input { width: 18px; height: 18px; accent-color: #2ed573; cursor: pointer; }
     .modal-btn {
-      width: 100%; padding: 12px; background: #38bdf8; border: none; border-radius: 10px; color: #000; font-weight: 700; font-size: 15px; cursor: pointer;
+      width: 100%; padding: 11px; background: #38bdf8; border: none; border-radius: 10px; color: #000; font-weight: 700; font-size: 14px; cursor: pointer;
     }
 
-    /* DM Request Popup */
     #dmRequestModal .modal-card { text-align: center; }
     .dm-action-btns { display: flex; gap: 10px; margin-top: 14px; }
     .btn-dm-accept { background: #10b981; color: white; flex: 1; padding: 10px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
@@ -254,6 +276,12 @@
 </head>
 <body>
 
+  <!-- 1. Legal Warning & Policy Notice Bar -->
+  <div id="safetyWarningBar">
+    <span>⚠️ <b>Strict Warning:</b> Nudity, obscene media, or harassment is strictly illegal under Indian IT Act. Zero tolerance for minor-related imagery.</span>
+    <a id="openTermsLink">View Terms</a>
+  </div>
+
   <!-- Welcome Animation -->
   <div id="welcomeAnimationOverlay">
     <div class="kiss-character-box">
@@ -267,6 +295,38 @@
   <div id="viewOnceModal">
     <img id="viewOnceImg" src="" alt="Private Photo" />
     <div id="viewOnceTimer">Disappearing in 5s...</div>
+  </div>
+
+  <!-- Terms & Policy Modal -->
+  <div class="modal-overlay" id="termsModal" style="display: none;">
+    <div class="modal-card">
+      <h3 style="color:#f43f5e;">Community Guidelines & Terms</h3>
+      <p style="font-size:12.5px; color:#cbd5e1; line-height:1.5; margin-bottom:12px;">
+        1. You must be 18+ to use this service.<br>
+        2. Sharing non-consensual imagery, nudity, sexual exploitation, or abuse is strictly prohibited.<br>
+        3. All sessions log IP timestamps for intermediary audit compliance under IT Rules.<br>
+        4. Violators are reported directly to law enforcement authorities.
+      </p>
+      <button class="modal-btn" id="closeTermsBtn">Understood & Accept</button>
+    </div>
+  </div>
+
+  <!-- Report Abuse Modal -->
+  <div class="modal-overlay" id="reportModal" style="display: none;">
+    <div class="modal-card">
+      <h3 style="color:#ef4444;">🚩 Report Partner</h3>
+      <div class="form-group">
+        <label>Reason for reporting:</label>
+        <select id="reportReasonSelect">
+          <option value="Sharing inappropriate/nude images">Sharing inappropriate/nude images</option>
+          <option value="Sexual harassment or abusive language">Sexual harassment or abusive language</option>
+          <option value="Suspected underage user">Suspected underage user</option>
+          <option value="Spam / Scams / Financial fraud">Spam / Scams / Financial fraud</option>
+        </select>
+      </div>
+      <button class="modal-btn" id="submitReportBtn" style="background:#ef4444; color:white;">Submit Report & Disconnect</button>
+      <button class="modal-btn" id="cancelReportBtn" style="background:transparent; color:#94a3b8; border:1px solid #334155; margin-top:8px;">Cancel</button>
+    </div>
   </div>
 
   <!-- DM Request Acceptance Modal -->
@@ -339,9 +399,9 @@
       <span class="room-badge" id="modeBadge">Random 1-on-1</span>
     </div>
     <div class="header-actions">
-      <!-- Request DM Button -->
+      <!-- 3. Report Button -->
+      <button class="btn-report" id="openReportBtn" title="Report inappropriate behavior">🚩 Report</button>
       <button class="btn-request-dm" id="requestDmBtn">💌 Request DM</button>
-
       <button class="btn-action btn-create-group" id="openGroupBtn">+ Create Group</button>
       <button class="btn-action btn-invite-group" id="inviteGroupBtn">🔗 Share Link</button>
       <button class="btn-action btn-next" id="nextBtn">Next</button>
@@ -358,7 +418,6 @@
   <div id="controls-container">
     <div id="typingIndicator"></div>
     <form id="controls">
-      <!-- Camera Icon: Locked by default in Main Chat -->
       <label for="imageInput" class="btn-file-label photo-locked" id="fileBtnLabel" title="Photos are only allowed in Personal DM">📷</label>
       <input type="file" id="imageInput" accept="image/*" disabled />
 
@@ -398,6 +457,18 @@
     const imageInput = document.getElementById('imageInput');
     const fileBtnLabel = document.getElementById('fileBtnLabel');
     const requestDmBtn = document.getElementById('requestDmBtn');
+
+    // Report elements
+    const openReportBtn = document.getElementById('openReportBtn');
+    const reportModal = document.getElementById('reportModal');
+    const reportReasonSelect = document.getElementById('reportReasonSelect');
+    const submitReportBtn = document.getElementById('submitReportBtn');
+    const cancelReportBtn = document.getElementById('cancelReportBtn');
+
+    // Terms elements
+    const openTermsLink = document.getElementById('openTermsLink');
+    const termsModal = document.getElementById('termsModal');
+    const closeTermsBtn = document.getElementById('closeTermsBtn');
 
     const dmRequestModal = document.getElementById('dmRequestModal');
     const dmRequestText = document.getElementById('dmRequestText');
@@ -459,6 +530,32 @@
       startRandomChat();
     }
 
+    // Terms modal
+    openTermsLink.addEventListener('click', () => { termsModal.style.display = 'flex'; });
+    closeTermsBtn.addEventListener('click', () => { termsModal.style.display = 'none'; });
+
+    // Report modal handlers
+    openReportBtn.addEventListener('click', () => {
+      reportModal.style.display = 'flex';
+    });
+    cancelReportBtn.addEventListener('click', () => {
+      reportModal.style.display = 'none';
+    });
+    submitReportBtn.addEventListener('click', () => {
+      const reason = reportReasonSelect.value;
+      socket.emit('report_partner', reason);
+      reportModal.style.display = 'none';
+    });
+
+    socket.on('report_confirmed', () => {
+      addMessage('🚩 Partner reported and session terminated. Audit log updated.', 'system');
+      partnerInfoBar.style.display = 'none';
+      typingIndicator.innerText = '';
+      inPersonalDM = false;
+      setChatEnabled(false);
+      setPhotoSharing(false);
+    });
+
     openProfileBtn.addEventListener('click', () => {
       profileModal.style.display = 'flex';
     });
@@ -516,7 +613,6 @@
       }
     }
 
-    // Inform user when tapping locked camera in main chat
     fileBtnLabel.addEventListener('click', (e) => {
       if (!inPersonalDM) {
         e.preventDefault();
@@ -535,7 +631,7 @@
       modeBadge.innerText = `Group: ${gName}`;
       modeBadge.style.color = '#a855f7';
       inviteGroupBtn.style.display = 'inline-block';
-      requestDmBtn.style.display = 'none'; // No 1-on-1 DM request in group
+      requestDmBtn.style.display = 'none';
       nextBtn.innerText = 'Leave Group';
 
       socket.emit('join_group', { roomId, groupName: gName, profile: myProfile });
@@ -554,7 +650,6 @@
       }
     });
 
-    // DM Request Flow
     requestDmBtn.addEventListener('click', () => {
       if (inPersonalDM) {
         alert('You are already in Personal DM!');
@@ -795,8 +890,8 @@
       typingIndicator.innerText = data.status ? `${data.sender} is typing...` : "";
     });
 
-    socket.on('partner_disconnected', () => {
-      addMessage('Stranger has disconnected.', 'system');
+    socket.on('partner_disconnected', (customMsg) => {
+      addMessage(customMsg || 'Stranger has disconnected.', 'system');
       partnerInfoBar.style.display = 'none';
       typingIndicator.innerText = '';
       inPersonalDM = false;
