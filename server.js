@@ -11,9 +11,7 @@ const io = new Server(server);
 app.use(express.static('public'));
 
 let waitingUser = null;
-let onlineUsers = 0;
 
-// Log function jo chats.txt me save karega
 function saveLog(text) {
   const logLine = `[${new Date().toISOString()}] ${text}\n`;
   fs.appendFile(path.join(__dirname, 'chats.txt'), logLine, (err) => {
@@ -22,11 +20,19 @@ function saveLog(text) {
 }
 
 io.on('connection', (socket) => {
-  onlineUsers++;
-  io.emit('online_count', onlineUsers);
   socket.partner = null;
+  socket.profile = null;
 
-  socket.on('find_partner', () => {
+  // Profile update handler
+  socket.on('set_profile', (profileData) => {
+    socket.profile = profileData;
+  });
+
+  socket.on('find_partner', (userProfile) => {
+    if (userProfile) {
+      socket.profile = userProfile;
+    }
+
     if (socket.partner) {
       socket.partner.emit('partner_disconnected');
       socket.partner.partner = null;
@@ -39,8 +45,28 @@ io.on('connection', (socket) => {
 
       saveLog(`SESSION START: User ${socket.id} paired with ${waitingUser.id}`);
 
-      socket.emit('chat_start', 'You are now connected with a random stranger. Say hi!');
-      waitingUser.emit('chat_start', 'You are now connected with a random stranger. Say hi!');
+      // Dono ko ek dusre ki profile bhejna (privacy ke hisab se)
+      const socketShareData = socket.profile && socket.profile.shareInfo ? {
+        name: socket.profile.name || 'Anonymous',
+        age: socket.profile.age || '',
+        fantasy: socket.profile.fantasy || ''
+      } : null;
+
+      const waitingShareData = waitingUser.profile && waitingUser.profile.shareInfo ? {
+        name: waitingUser.profile.name || 'Anonymous',
+        age: waitingUser.profile.age || '',
+        fantasy: waitingUser.profile.fantasy || ''
+      } : null;
+
+      socket.emit('chat_start', {
+        msg: 'You are now connected with a partner. Say hi!',
+        partnerProfile: waitingShareData
+      });
+
+      waitingUser.emit('chat_start', {
+        msg: 'You are now connected with a partner. Say hi!',
+        partnerProfile: socketShareData
+      });
 
       waitingUser = null;
     } else {
@@ -50,10 +76,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('send_message', (msg) => {
-    // Message save karna terminal logs aur text file me
     saveLog(`CHAT [From ${socket.id}]: ${msg}`);
-    console.log(`[MSG] ${socket.id}: ${msg}`);
-
     if (socket.partner) {
       socket.partner.emit('receive_message', msg);
     }
@@ -77,16 +100,10 @@ io.on('connection', (socket) => {
     }
   };
 
-  socket.on('disconnect', () => {
-    onlineUsers = Math.max(0, onlineUsers - 1);
-    io.emit('online_count', onlineUsers);
-    handleLeave();
-  });
-
+  socket.on('disconnect', handleLeave);
   socket.on('leave_chat', handleLeave);
 });
 
-// Admin Route: browser me direct /view-logs khol kar chat dekhne ke liye
 app.get('/view-logs', (req, res) => {
   const filePath = path.join(__dirname, 'chats.txt');
   if (fs.existsSync(filePath)) {
