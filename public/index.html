@@ -58,6 +58,40 @@
     .btn-invite-group { background: #10b981; border: none; color: #fff; display: none; }
     .btn-next { background: #ff4757; color: #ffffff; border: none; }
 
+    /* Group Private Mode Switch */
+    .privacy-toggle-container {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      background: #1e2230;
+      padding: 5px 12px;
+      border-radius: 18px;
+      font-size: 12px;
+      border: 1px solid #2e3448;
+    }
+    .privacy-toggle-container input { accent-color: #ec4899; cursor: pointer; }
+
+    /* Anti-Screenshot Overlay Shield */
+    #antiScreenshotShield {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(12, 13, 17, 0.98);
+      z-index: 99999;
+      color: #ef4444;
+      font-size: 20px;
+      font-weight: bold;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .screenshot-protected {
+      user-select: none !important;
+      -webkit-user-select: none !important;
+    }
+
     #partner-info-bar {
       display: none;
       background: #191c2b;
@@ -76,7 +110,6 @@
     .stranger { background: #1a1e2d; color: #e4e6eb; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #2b324a; }
     .system { background: #171f1a; color: #4cd137; align-self: center; font-size: 0.85em; border-radius: 20px; padding: 5px 14px; border: 1px solid #1e3a24; text-align: center; }
     
-    /* Chat Image Style */
     .chat-img {
       max-width: 240px;
       max-height: 240px;
@@ -86,12 +119,28 @@
       cursor: pointer;
     }
 
+    /* View Once Button in Chat */
+    .view-once-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #3b2042;
+      border: 1px dashed #d946ef;
+      color: #f5d0fe;
+      padding: 8px 14px;
+      border-radius: 16px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    .view-once-btn:hover { background: #4a2854; }
+
     #typingIndicator { font-size: 0.82em; color: #9ca3af; font-style: italic; min-height: 18px; margin-bottom: 6px; padding-left: 6px; }
 
     #controls-container { padding: 12px 16px; background: #14161f; border-top: 1px solid #232635; }
     #controls { display: flex; gap: 8px; align-items: center; }
     
-    /* Photo Upload Button */
     .btn-file-label {
       background: #1c202e;
       border: 1px solid #2d3246;
@@ -104,10 +153,25 @@
       cursor: pointer;
       color: #94a3b8;
       font-size: 20px;
-      transition: background 0.2s;
     }
     .btn-file-label:hover { background: #282e42; color: #fff; }
     #imageInput { display: none; }
+
+    /* View Once Optional Checkbox next to input */
+    .view-once-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: #d946ef;
+      background: #25162a;
+      padding: 6px 10px;
+      border-radius: 16px;
+      border: 1px solid #581c87;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .view-once-toggle input { accent-color: #d946ef; cursor: pointer; }
 
     input[type="text"] { flex: 1; padding: 12px 18px; border: 1px solid #2d3246; border-radius: 24px; font-size: 14.5px; outline: none; background: #1c202e; color: #fff; }
     input:focus { border-color: #70a1ff; }
@@ -116,7 +180,7 @@
     .btn-send { background: #2ed573; color: white; padding: 10px 22px; border: none; border-radius: 24px; cursor: pointer; font-size: 14.5px; font-weight: 700; }
     button:disabled, .disabled-btn { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
 
-    /* Modals */
+    /* Modal Styles */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 999;
@@ -136,9 +200,35 @@
     .modal-btn {
       width: 100%; padding: 12px; background: #38bdf8; border: none; border-radius: 10px; color: #000; font-weight: 700; font-size: 15px; cursor: pointer;
     }
+
+    /* Single View Modal Viewer */
+    #viewOnceModal {
+      display: none;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.92); z-index: 10000;
+      flex-direction: column; align-items: center; justify-content: center;
+    }
+    #viewOnceImg {
+      max-width: 85%; max-height: 75vh; border-radius: 12px; box-shadow: 0 0 25px rgba(0,0,0,0.8);
+    }
+    #viewOnceTimer {
+      margin-top: 15px; color: #ec4899; font-weight: bold; font-size: 16px;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Anti-Screenshot Privacy Overlay -->
+  <div id="antiScreenshotShield">
+    <span>🛡 Screenshot / Recording Disabled</span>
+    <span style="font-size: 13px; color: #94a3b8;">This group has private protection active.</span>
+  </div>
+
+  <!-- View Once Modal Viewer -->
+  <div id="viewOnceModal">
+    <img id="viewOnceImg" src="" alt="View Once Photo" />
+    <div id="viewOnceTimer">Disappearing in 5s...</div>
+  </div>
 
   <!-- Profile Modal -->
   <div class="modal-overlay" id="profileModal">
@@ -158,7 +248,7 @@
       </div>
       <div class="toggle-row">
         <input type="checkbox" id="profShare" checked />
-        <label for="profShare">Show my info to stranger in 1-on-1</label>
+        <label for="profShare">Show my info in 1-on-1</label>
       </div>
       <button class="modal-btn" id="saveProfileBtn">Save & Start</button>
     </div>
@@ -170,7 +260,7 @@
       <h3>Create a Chat Group</h3>
       <div class="form-group">
         <label>Group Name</label>
-        <input type="text" id="groupNameInput" placeholder="e.g. Late Night Vibe" />
+        <input type="text" id="groupNameInput" placeholder="e.g. Secret Room" />
       </div>
       <button class="modal-btn" id="startGroupBtn" style="background: #a855f7; color: #fff;">Create & Invite</button>
       <button class="modal-btn" id="cancelGroupBtn" style="background: transparent; color: #94a3b8; border: 1px solid #334155; margin-top: 8px;">Cancel</button>
@@ -183,6 +273,12 @@
       <span class="room-badge" id="modeBadge">Random 1-on-1</span>
     </div>
     <div class="header-actions">
+      <!-- Admin Private Group Toggle -->
+      <label class="privacy-toggle-container" id="privacyToggleBox" title="Prevent screenshots & screen capture">
+        <input type="checkbox" id="privateModeCheck" />
+        <span>🔒 Private (Anti-Screenshot)</span>
+      </label>
+
       <button class="btn-action" id="openProfileBtn">⚙ Profile</button>
       <button class="btn-action btn-create-group" id="openGroupBtn">+ Create Group</button>
       <button class="btn-action btn-invite-group" id="inviteGroupBtn">🔗 Share Link</button>
@@ -200,9 +296,14 @@
   <div id="controls-container">
     <div id="typingIndicator"></div>
     <form id="controls">
-      <!-- File input label with camera/photo icon -->
       <label for="imageInput" class="btn-file-label disabled-btn" id="fileBtnLabel" title="Upload Image">📷</label>
       <input type="file" id="imageInput" accept="image/*" disabled />
+
+      <!-- View Once Optional Switch -->
+      <label class="view-once-toggle" title="Receiver can only view this photo once">
+        <input type="checkbox" id="viewOnceCheck" />
+        <span>View Once 1️⃣</span>
+      </label>
 
       <input type="text" id="msgInput" placeholder="Type a message..." disabled autocomplete="off" />
       <button type="submit" class="btn-send" id="sendBtn" disabled>Send</button>
@@ -225,6 +326,14 @@
 
     const imageInput = document.getElementById('imageInput');
     const fileBtnLabel = document.getElementById('fileBtnLabel');
+    const viewOnceCheck = document.getElementById('viewOnceCheck');
+    const privacyToggleBox = document.getElementById('privacyToggleBox');
+    const privateModeCheck = document.getElementById('privateModeCheck');
+    const antiScreenshotShield = document.getElementById('antiScreenshotShield');
+
+    const viewOnceModal = document.getElementById('viewOnceModal');
+    const viewOnceImg = document.getElementById('viewOnceImg');
+    const viewOnceTimer = document.getElementById('viewOnceTimer');
 
     // Modals
     const profileModal = document.getElementById('profileModal');
@@ -245,6 +354,8 @@
     let currentMode = 'random';
     let currentRoomId = null;
     let currentGroupName = '';
+    let isGroupAdmin = false;
+    let isPrivateModeActive = false;
     let typingTimeout;
 
     let myProfile = {
@@ -278,7 +389,7 @@
       socket.emit('set_profile', myProfile);
 
       if (joinRoomParam) {
-        joinCustomGroup(joinRoomParam, joinNameParam || 'Custom Group');
+        joinCustomGroup(joinRoomParam, joinNameParam || 'Custom Group', false);
       } else {
         startRandomChat();
       }
@@ -299,7 +410,7 @@
       const gName = groupNameInput.value.trim() || 'My Group';
       const roomId = 'room_' + Math.random().toString(36).substring(2, 9);
       groupModal.style.display = 'none';
-      joinCustomGroup(roomId, gName);
+      joinCustomGroup(roomId, gName, true); // true = admin
     });
 
     function setChatEnabled(enabled) {
@@ -313,10 +424,11 @@
       }
     }
 
-    function joinCustomGroup(roomId, gName) {
+    function joinCustomGroup(roomId, gName, isAdmin) {
       currentMode = 'group';
       currentRoomId = roomId;
       currentGroupName = gName;
+      isGroupAdmin = isAdmin;
 
       chatBox.innerHTML = '';
       partnerInfoBar.style.display = 'none';
@@ -325,10 +437,59 @@
       inviteGroupBtn.style.display = 'inline-block';
       nextBtn.innerText = 'Leave Group';
 
+      // Show privacy toggle only to group creator/admin
+      if (isGroupAdmin) {
+        privacyToggleBox.style.display = 'flex';
+        privateModeCheck.disabled = false;
+      } else {
+        privacyToggleBox.style.display = 'none';
+      }
+
       socket.emit('join_group', { roomId, groupName: gName, profile: myProfile });
       setChatEnabled(true);
       msgInput.focus();
     }
+
+    // Admin toggles screenshot protection
+    privateModeCheck.addEventListener('change', () => {
+      socket.emit('toggle_privacy_mode', privateModeCheck.checked);
+    });
+
+    socket.on('privacy_mode_updated', (active) => {
+      isPrivateModeActive = active;
+      if (active) {
+        document.body.classList.add('screenshot-protected');
+        addMessage('🔒 Private Mode Activated: Anti-screenshot shielding enabled.', 'system');
+      } else {
+        document.body.classList.remove('screenshot-protected');
+        addMessage('🔓 Private Mode Deactivated.', 'system');
+      }
+    });
+
+    // Anti-screenshot & Snip prevention events
+    window.addEventListener('keyup', (e) => {
+      if (isPrivateModeActive && (e.key === 'PrintScreen' || e.keyCode === 44)) {
+        antiScreenshotShield.style.display = 'flex';
+        setTimeout(() => antiScreenshotShield.style.display = 'none', 1500);
+      }
+    });
+
+    // Hide content when window loses focus (user trying snipping tool)
+    window.addEventListener('blur', () => {
+      if (isPrivateModeActive) {
+        antiScreenshotShield.style.display = 'flex';
+      }
+    });
+    window.addEventListener('focus', () => {
+      antiScreenshotShield.style.display = 'none';
+    });
+
+    // Disable right click save in private mode
+    document.addEventListener('contextmenu', (e) => {
+      if (isPrivateModeActive) {
+        e.preventDefault();
+      }
+    });
 
     inviteGroupBtn.addEventListener('click', () => {
       const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${currentRoomId}&name=${encodeURIComponent(currentGroupName)}`;
@@ -355,7 +516,8 @@
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    function addImageMessage(base64Data, type, senderName = '') {
+    // Photo Message Handler (Normal vs View-Once)
+    function addImageMessage(data, type, senderName = '') {
       const div = document.createElement('div');
       div.className = `msg ${type}`;
       if (senderName && type === 'stranger') {
@@ -364,32 +526,69 @@
         span.innerText = senderName;
         div.appendChild(span);
       }
-      const img = document.createElement('img');
-      img.src = base64Data;
-      img.className = 'chat-img';
-      img.onclick = () => window.open(base64Data, '_blank');
-      div.appendChild(img);
+
+      if (data.viewOnce) {
+        if (type === 'you') {
+          div.innerHTML += `<div>📷 <i>You sent a View Once photo</i></div>`;
+        } else {
+          const btn = document.createElement('button');
+          btn.className = 'view-once-btn';
+          btn.innerHTML = `👁 View Photo (Once)`;
+          btn.onclick = () => openViewOncePhoto(data.image, div, btn);
+          div.appendChild(btn);
+        }
+      } else {
+        const img = document.createElement('img');
+        img.src = data.image;
+        img.className = 'chat-img';
+        img.onclick = () => window.open(data.image, '_blank');
+        div.appendChild(img);
+      }
+
       chatBox.appendChild(div);
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // Photo input event handler
+    // View-Once modal and 5s self-destruct
+    function openViewOncePhoto(imgSrc, containerDiv, buttonElem) {
+      viewOnceImg.src = imgSrc;
+      viewOnceModal.style.display = 'flex';
+      buttonElem.remove();
+
+      let timeLeft = 5;
+      viewOnceTimer.innerText = `Disappearing in ${timeLeft}s...`;
+
+      const countdown = setInterval(() => {
+        timeLeft--;
+        if (timeLeft > 0) {
+          viewOnceTimer.innerText = `Disappearing in ${timeLeft}s...`;
+        } else {
+          clearInterval(countdown);
+          viewOnceModal.style.display = 'none';
+          viewOnceImg.src = '';
+          containerDiv.innerHTML = `<span style="color:#888; font-style:italic;">🔒 Photo opened and expired</span>`;
+        }
+      }, 1000);
+    }
+
+    // Image Upload
     imageInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
-      // File size check (under 3MB)
       if (file.size > 3 * 1024 * 1024) {
         alert('Please choose an image under 3MB');
         imageInput.value = '';
         return;
       }
 
+      const isViewOnce = viewOnceCheck.checked;
       const reader = new FileReader();
       reader.onload = function(event) {
         const base64Data = event.target.result;
-        socket.emit('send_image', base64Data);
-        addImageMessage(base64Data, 'you');
+        socket.emit('send_image', { image: base64Data, viewOnce: isViewOnce });
+        addImageMessage({ image: base64Data, viewOnce: isViewOnce }, 'you');
+        viewOnceCheck.checked = false; // Reset toggle after sending
       };
       reader.readAsDataURL(file);
       imageInput.value = '';
@@ -398,6 +597,10 @@
     function startRandomChat() {
       currentMode = 'random';
       currentRoomId = null;
+      isGroupAdmin = false;
+      isPrivateModeActive = false;
+      document.body.classList.remove('screenshot-protected');
+      privacyToggleBox.style.display = 'none';
       inviteGroupBtn.style.display = 'none';
       modeBadge.innerText = 'Random 1-on-1';
       modeBadge.style.color = '#38bdf8';
@@ -456,9 +659,9 @@
       addMessage(msg, 'stranger');
     });
 
-    socket.on('receive_image', (imageData) => {
+    socket.on('receive_image', (payload) => {
       typingIndicator.innerText = '';
-      addImageMessage(imageData, 'stranger');
+      addImageMessage(payload, 'stranger');
     });
 
     socket.on('receive_group_message', (data) => {
@@ -468,7 +671,7 @@
 
     socket.on('receive_group_image', (data) => {
       typingIndicator.innerText = '';
-      addImageMessage(data.image, 'stranger', data.sender);
+      addImageMessage(data, 'stranger', data.sender);
     });
 
     socket.on('stranger_typing', (isTyping) => {
