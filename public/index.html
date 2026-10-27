@@ -204,11 +204,11 @@
     .system { background: #171f1a; color: #4cd137; align-self: center; font-size: 0.82em; border-radius: 20px; padding: 5px 12px; border: 1px solid #1e3a24; text-align: center; }
     
     .chat-img, .chat-video {
-      max-width: 220px;
-      max-height: 220px;
+      max-width: 240px;
+      max-height: 240px;
       border-radius: 10px;
       display: block;
-      margin-top: 4px;
+      margin-top: 5px;
     }
     .chat-img { cursor: pointer; }
 
@@ -303,13 +303,15 @@
     .btn-dm-accept { background: #10b981; color: white; flex: 1; padding: 9px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
     .btn-dm-decline { background: #ef4444; color: white; flex: 1; padding: 9px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
 
+    /* Media Preview Modal */
     #mediaSendModal .modal-card { text-align: center; }
-    #previewImgBox { max-width: 100%; max-height: 180px; border-radius: 10px; margin: 10px 0; border: 1px solid #334155; object-fit: contain; }
-    #previewVideoBox { max-width: 100%; max-height: 180px; border-radius: 10px; margin: 10px 0; border: 1px solid #334155; }
+    #previewImgBox { max-width: 100%; max-height: 200px; border-radius: 10px; margin: 10px 0; border: 1px solid #334155; object-fit: contain; }
+    #previewVideoBox { max-width: 100%; max-height: 200px; border-radius: 10px; margin: 10px 0; border: 1px solid #334155; }
     .img-option-btns { display: flex; gap: 8px; margin-top: 10px; }
     .btn-send-normal { background: #3b82f6; color: #fff; flex: 1; padding: 10px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; }
     .btn-send-viewonce { background: #d946ef; color: #fff; flex: 1; padding: 10px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; }
 
+    /* Fullscreen View-Once Players */
     #viewOnceModal, #viewOnceVideoModal {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.96); z-index: 10000; flex-direction: column; align-items: center; justify-content: center;
@@ -344,7 +346,7 @@
   <!-- Video View Once Modal -->
   <div id="viewOnceVideoModal">
     <video id="viewOnceVideoPlayer" playsinline controls></video>
-    <div id="viewOnceVideoTimer">Watching... (Closes when finished)</div>
+    <div id="viewOnceVideoTimer">Watching... (Closes automatically on end)</div>
   </div>
 
   <!-- Rooms Modal -->
@@ -411,7 +413,7 @@
       <div class="form-group">
         <label>Reason for reporting:</label>
         <select id="reportReasonSelect">
-          <option value="Sharing inappropriate/nude images or videos">Sharing inappropriate/nude content</option>
+          <option value="Sharing inappropriate/nude media">Sharing inappropriate/nude media</option>
           <option value="Sexual harassment or abusive language">Sexual harassment or abusive language</option>
           <option value="Suspected underage user">Suspected underage user</option>
           <option value="Spam / Scams / Financial fraud">Spam / Scams / Financial fraud</option>
@@ -426,7 +428,7 @@
   <div class="modal-overlay" id="dmRequestModal" style="display: none;">
     <div class="modal-card">
       <h3>💌 Personal DM Request</h3>
-      <p id="dmRequestText" style="font-size: 13.5px; color: #cbd5e1; margin-top: 8px;">Stranger wants to connect in Personal DM where photos and videos are unlocked.</p>
+      <p id="dmRequestText" style="font-size: 13.5px; color: #cbd5e1; margin-top: 8px;">Stranger wants to connect in Personal DM where photo & video sharing is unlocked.</p>
       <div class="dm-action-btns">
         <button class="btn-dm-accept" id="acceptDmBtn">Accept & DM</button>
         <button class="btn-dm-decline" id="declineDmBtn">Decline</button>
@@ -437,7 +439,7 @@
   <!-- Media Send Modal (Images + Videos) -->
   <div class="modal-overlay" id="mediaSendModal" style="display: none;">
     <div class="modal-card">
-      <h3>Send Photo or Video</h3>
+      <h3>Send Photo / Video</h3>
       <img id="previewImgBox" src="" style="display: none;" />
       <video id="previewVideoBox" controls playsinline style="display: none;"></video>
       <p style="font-size: 12.5px; color: #94a3b8; margin-bottom: 8px;">Select playback mode:</p>
@@ -501,8 +503,9 @@
   <div id="controls-container">
     <div id="typingIndicator"></div>
     <form id="controls">
-      <label for="mediaInput" class="btn-file-label media-locked" id="fileBtnLabel" title="Photos and videos are only allowed in Personal DM">📎</label>
-      <input type="file" id="mediaInput" accept="image/*,video/mp4,video/webm" disabled />
+      <!-- Media upload: accepts images, MP4, WebM, QuickTime -->
+      <label for="mediaInput" class="btn-file-label media-locked" id="fileBtnLabel" title="Media is only allowed in Personal DM">📎</label>
+      <input type="file" id="mediaInput" accept="image/*,video/mp4,video/webm,video/quicktime" disabled />
 
       <input type="text" id="msgInput" placeholder="Type a message..." disabled autocomplete="off" />
 
@@ -573,7 +576,6 @@
     const acceptDmBtn = document.getElementById('acceptDmBtn');
     const declineDmBtn = document.getElementById('declineDmBtn');
 
-    // Media modal elements
     const mediaSendModal = document.getElementById('mediaSendModal');
     const previewImgBox = document.getElementById('previewImgBox');
     const previewVideoBox = document.getElementById('previewVideoBox');
@@ -581,7 +583,6 @@
     const sendViewOnceMediaBtn = document.getElementById('sendViewOnceMediaBtn');
     const cancelMediaBtn = document.getElementById('cancelMediaBtn');
 
-    // View Once Elements
     const viewOnceModal = document.getElementById('viewOnceModal');
     const viewOnceImg = document.getElementById('viewOnceImg');
     const viewOnceTimer = document.getElementById('viewOnceTimer');
@@ -763,14 +764,14 @@
         fileBtnLabel.title = "Upload Photo or Video";
       } else {
         fileBtnLabel.classList.add('media-locked');
-        fileBtnLabel.title = "Photos and videos are locked. Request DM to share media.";
+        fileBtnLabel.title = "Photos & Videos are locked. Request DM to share media.";
       }
     }
 
     fileBtnLabel.addEventListener('click', (e) => {
       if (!inPersonalDM) {
         e.preventDefault();
-        alert('Photos & Videos are disabled in Public Chat. Click "💌 DM" to ask partner for Private DM!');
+        alert('Photos & Videos are disabled in Public Chat. Click "💌 DM" to ask your partner for Private DM!');
       }
     });
 
@@ -809,7 +810,7 @@
     });
 
     socket.on('receive_dm_request', (data) => {
-      dmRequestText.innerText = `${data.senderName} wants to enter Personal DM to unlock photos and videos. Accept?`;
+      dmRequestText.innerText = `${data.senderName} wants to enter Personal DM to unlock photos and videos. Do you accept?`;
       dmRequestModal.style.display = 'flex';
     });
 
@@ -862,9 +863,9 @@
       }
 
       const isVideo = file.type.startsWith('video/');
-      const maxLimit = isVideo ? 20 * 1024 * 1024 : 5 * 1024 * 1024;
+      const maxLimit = isVideo ? 25 * 1024 * 1024 : 5 * 1024 * 1024; // 25MB video, 5MB image
       if (file.size > maxLimit) {
-        alert(`File too large! Max allowed: ${isVideo ? '20MB for video' : '5MB for images'}`);
+        alert(`File too large! Max allowed: ${isVideo ? '25MB for video' : '5MB for image'}`);
         mediaInput.value = '';
         return;
       }
