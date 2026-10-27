@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
   <title>Talk to Me</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,9 +11,8 @@
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
-    body { display: flex; flex-direction: column; height: 100dvh; height: 100vh; background: #0c0d11; color: #ffffff; overflow: hidden; }
+    body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; background: #0c0d11; color: #ffffff; overflow: hidden; }
     
-    /* Safety Warning Banner */
     #safetyWarningBar {
       background: #180f15;
       border-bottom: 1px solid #3b111e;
@@ -28,7 +27,6 @@
     }
     #safetyWarningBar a { color: #f43f5e; text-decoration: underline; cursor: pointer; white-space: nowrap; margin-left: 6px; }
 
-    /* Animated Girl Flying Kiss Overlay */
     #welcomeAnimationOverlay {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
@@ -91,15 +89,8 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       letter-spacing: 1px;
-      animation: glowTitle 2s infinite alternate;
     }
 
-    @keyframes glowTitle {
-      from { filter: drop-shadow(0 0 5px rgba(244, 114, 182, 0.3)); }
-      to { filter: drop-shadow(0 0 18px rgba(244, 114, 182, 0.7)); }
-    }
-
-    /* Fixed Mobile Header Layout */
     header { 
       background: #14161f; 
       padding: 8px 12px; 
@@ -182,7 +173,6 @@
       display: none;
       white-space: nowrap;
     }
-    .btn-report:hover { background: #991b1b; color: #fff; }
 
     #partner-info-bar {
       display: none;
@@ -213,14 +203,14 @@
     .stranger { background: #1a1e2d; color: #e4e6eb; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #2b324a; }
     .system { background: #171f1a; color: #4cd137; align-self: center; font-size: 0.82em; border-radius: 20px; padding: 5px 12px; border: 1px solid #1e3a24; text-align: center; }
     
-    .chat-img {
+    .chat-img, .chat-video {
       max-width: 220px;
       max-height: 220px;
       border-radius: 10px;
       display: block;
       margin-top: 4px;
-      cursor: pointer;
     }
+    .chat-img { cursor: pointer; }
 
     .view-once-btn {
       display: inline-flex;
@@ -257,9 +247,9 @@
       flex-shrink: 0;
     }
     .btn-file-label:hover, .btn-input-icon:hover { background: #282e42; color: #fff; }
-    #imageInput { display: none; }
+    #mediaInput { display: none; }
 
-    .photo-locked {
+    .media-locked {
       opacity: 0.3 !important;
       cursor: not-allowed !important;
       pointer-events: auto !important;
@@ -272,7 +262,6 @@
     .btn-send { background: #2ed573; color: white; padding: 9px 18px; border: none; border-radius: 22px; cursor: pointer; font-size: 14px; font-weight: 700; flex-shrink: 0; }
     button:disabled, .disabled-btn { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
 
-    /* Modals */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 999;
@@ -293,66 +282,20 @@
       width: 100%; padding: 10px; background: #38bdf8; border: none; border-radius: 10px; color: #000; font-weight: 700; font-size: 14px; cursor: pointer;
     }
 
-    /* Room Actions Grid */
-    .room-actions-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin: 12px 0;
-    }
-    .room-action-tile {
-      background: #111420;
-      border: 1px solid #2e354f;
-      border-radius: 12px;
-      padding: 14px 10px;
-      text-align: center;
-      cursor: pointer;
-    }
+    .room-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+    .room-action-tile { background: #111420; border: 1px solid #2e354f; border-radius: 12px; padding: 14px 10px; text-align: center; cursor: pointer; }
     .room-action-tile:hover { background: #1b2033; }
     .room-action-icon { font-size: 24px; margin-bottom: 5px; display: block; }
     .room-action-title { font-weight: 600; font-size: 13px; color: #f1f5f9; }
 
-    /* Group Search */
     #groupSearchInput {
-      width: 100%;
-      padding: 9px 12px;
-      background: #0f1016;
-      border: 1px solid #334155;
-      border-radius: 10px;
-      color: #fff;
-      font-size: 13.5px;
-      margin-bottom: 10px;
-      outline: none;
+      width: 100%; padding: 9px 12px; background: #0f1016; border: 1px solid #334155; border-radius: 10px; color: #fff; font-size: 13.5px; margin-bottom: 10px; outline: none;
     }
-    .group-list-container {
-      flex: 1;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-      margin-bottom: 10px;
-    }
-    .group-item-card {
-      background: #12141c;
-      border: 1px solid #23283c;
-      border-radius: 10px;
-      padding: 9px 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+    .group-list-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 7px; margin-bottom: 10px; }
+    .group-item-card { background: #12141c; border: 1px solid #23283c; border-radius: 10px; padding: 9px 12px; display: flex; justify-content: space-between; align-items: center; }
     .group-item-name { font-weight: 600; font-size: 13px; color: #f1f5f9; }
     .group-item-members { font-size: 10.5px; color: #38bdf8; margin-top: 2px; }
-    .btn-join-room {
-      background: #8b5cf6;
-      color: #fff;
-      border: none;
-      padding: 5px 12px;
-      border-radius: 12px;
-      font-size: 11.5px;
-      font-weight: 600;
-      cursor: pointer;
-    }
+    .btn-join-room { background: #8b5cf6; color: #fff; border: none; padding: 5px 12px; border-radius: 12px; font-size: 11.5px; font-weight: 600; cursor: pointer; }
     .no-groups-text { text-align: center; color: #64748b; font-size: 12.5px; padding: 16px 0; }
 
     #dmRequestModal .modal-card { text-align: center; }
@@ -360,34 +303,29 @@
     .btn-dm-accept { background: #10b981; color: white; flex: 1; padding: 9px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
     .btn-dm-decline { background: #ef4444; color: white; flex: 1; padding: 9px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
 
-    #imageSendModal .modal-card { text-align: center; }
+    #mediaSendModal .modal-card { text-align: center; }
     #previewImgBox { max-width: 100%; max-height: 180px; border-radius: 10px; margin: 10px 0; border: 1px solid #334155; object-fit: contain; }
+    #previewVideoBox { max-width: 100%; max-height: 180px; border-radius: 10px; margin: 10px 0; border: 1px solid #334155; }
     .img-option-btns { display: flex; gap: 8px; margin-top: 10px; }
     .btn-send-normal { background: #3b82f6; color: #fff; flex: 1; padding: 10px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; }
     .btn-send-viewonce { background: #d946ef; color: #fff; flex: 1; padding: 10px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; }
 
-    #viewOnceModal {
-      display: none;
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.96); z-index: 10000;
-      flex-direction: column; align-items: center; justify-content: center;
+    #viewOnceModal, #viewOnceVideoModal {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.96); z-index: 10000; flex-direction: column; align-items: center; justify-content: center;
     }
-    #viewOnceImg {
-      max-width: 85%; max-height: 75vh; border-radius: 12px; box-shadow: 0 0 25px rgba(0,0,0,0.8);
-      pointer-events: none; -webkit-touch-callout: none;
-    }
-    #viewOnceTimer { margin-top: 15px; color: #ec4899; font-weight: bold; font-size: 15px; }
+    #viewOnceImg { max-width: 85%; max-height: 75vh; border-radius: 12px; box-shadow: 0 0 25px rgba(0,0,0,0.8); }
+    #viewOnceVideoPlayer { max-width: 90%; max-height: 75vh; border-radius: 12px; }
+    #viewOnceTimer, #viewOnceVideoTimer { margin-top: 15px; color: #ec4899; font-weight: bold; font-size: 15px; }
   </style>
 </head>
 <body>
 
-  <!-- Safety Banner -->
   <div id="safetyWarningBar">
     <span>⚠️ <b>Strict Warning:</b> Nudity is strictly illegal under Indian IT Act.</span>
     <a id="openTermsLink">View Terms</a>
   </div>
 
-  <!-- Animated Girl Overlay -->
   <div id="welcomeAnimationOverlay">
     <div class="animated-girl-container">
       <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Z6cW16dTZ4dG00Z3R4bnBqdXg1cnlueDFyZ3pqdWpnZHBteGZ1MyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/kZqbBT64ECtjy/giphy.gif" alt="Animated Girl" class="girl-gif-art" />
@@ -397,13 +335,19 @@
     <div class="welcome-text">Talk to Me</div>
   </div>
 
-  <!-- View Once Modal Viewer -->
+  <!-- Photo View Once Modal -->
   <div id="viewOnceModal">
     <img id="viewOnceImg" src="" alt="Private Photo" />
     <div id="viewOnceTimer">Disappearing in 5s...</div>
   </div>
 
-  <!-- Rooms Menu Modal -->
+  <!-- Video View Once Modal -->
+  <div id="viewOnceVideoModal">
+    <video id="viewOnceVideoPlayer" playsinline controls></video>
+    <div id="viewOnceVideoTimer">Watching... (Closes when finished)</div>
+  </div>
+
+  <!-- Rooms Modal -->
   <div class="modal-overlay" id="roomsMenuModal" style="display: none;">
     <div class="modal-card">
       <h3>Groups & Rooms</h3>
@@ -421,7 +365,7 @@
     </div>
   </div>
 
-  <!-- Search Groups Modal -->
+  <!-- Search Modal -->
   <div class="modal-overlay" id="searchGroupModal" style="display: none;">
     <div class="modal-card">
       <h3>🔍 Search & Join Groups</h3>
@@ -433,7 +377,7 @@
     </div>
   </div>
 
-  <!-- Create Group Modal -->
+  <!-- Create Modal -->
   <div class="modal-overlay" id="groupModal" style="display: none;">
     <div class="modal-card">
       <h3>Create a New Chat Group</h3>
@@ -460,14 +404,14 @@
     </div>
   </div>
 
-  <!-- Report Abuse Modal -->
+  <!-- Report Modal -->
   <div class="modal-overlay" id="reportModal" style="display: none;">
     <div class="modal-card">
       <h3 style="color:#ef4444;">🚩 Report Partner</h3>
       <div class="form-group">
         <label>Reason for reporting:</label>
         <select id="reportReasonSelect">
-          <option value="Sharing inappropriate/nude images">Sharing inappropriate/nude images</option>
+          <option value="Sharing inappropriate/nude images or videos">Sharing inappropriate/nude content</option>
           <option value="Sexual harassment or abusive language">Sexual harassment or abusive language</option>
           <option value="Suspected underage user">Suspected underage user</option>
           <option value="Spam / Scams / Financial fraud">Spam / Scams / Financial fraud</option>
@@ -478,11 +422,11 @@
     </div>
   </div>
 
-  <!-- DM Request Acceptance Modal -->
+  <!-- DM Request Modal -->
   <div class="modal-overlay" id="dmRequestModal" style="display: none;">
     <div class="modal-card">
       <h3>💌 Personal DM Request</h3>
-      <p id="dmRequestText" style="font-size: 13.5px; color: #cbd5e1; margin-top: 8px;">Stranger wants to connect in Personal DM where photo sharing is unlocked.</p>
+      <p id="dmRequestText" style="font-size: 13.5px; color: #cbd5e1; margin-top: 8px;">Stranger wants to connect in Personal DM where photos and videos are unlocked.</p>
       <div class="dm-action-btns">
         <button class="btn-dm-accept" id="acceptDmBtn">Accept & DM</button>
         <button class="btn-dm-decline" id="declineDmBtn">Decline</button>
@@ -490,17 +434,18 @@
     </div>
   </div>
 
-  <!-- Photo Send Modal -->
-  <div class="modal-overlay" id="imageSendModal" style="display: none;">
+  <!-- Media Send Modal (Images + Videos) -->
+  <div class="modal-overlay" id="mediaSendModal" style="display: none;">
     <div class="modal-card">
-      <h3>Send Photo</h3>
-      <img id="previewImgBox" src="" />
-      <p style="font-size: 12.5px; color: #94a3b8; margin-bottom: 8px;">Select how to send:</p>
+      <h3>Send Photo or Video</h3>
+      <img id="previewImgBox" src="" style="display: none;" />
+      <video id="previewVideoBox" controls playsinline style="display: none;"></video>
+      <p style="font-size: 12.5px; color: #94a3b8; margin-bottom: 8px;">Select playback mode:</p>
       <div class="img-option-btns">
-        <button class="btn-send-normal" id="sendNormalImgBtn">Normal View</button>
-        <button class="btn-send-viewonce" id="sendViewOnceImgBtn">View Once 1️⃣</button>
+        <button class="btn-send-normal" id="sendNormalMediaBtn">Normal View</button>
+        <button class="btn-send-viewonce" id="sendViewOnceMediaBtn">View Once 1️⃣</button>
       </div>
-      <button class="modal-btn" id="cancelImgBtn" style="background: transparent; color: #94a3b8; border: 1px solid #334155; margin-top: 10px; padding: 8px;">Cancel</button>
+      <button class="modal-btn" id="cancelMediaBtn" style="background: transparent; color: #94a3b8; border: 1px solid #334155; margin-top: 10px; padding: 8px;">Cancel</button>
     </div>
   </div>
 
@@ -529,7 +474,6 @@
     </div>
   </div>
 
-  <!-- Clean Non-Overlapping Mobile Header -->
   <header>
     <div class="header-top">
       <div class="brand-title">Talk to Me</div>
@@ -557,13 +501,12 @@
   <div id="controls-container">
     <div id="typingIndicator"></div>
     <form id="controls">
-      <label for="imageInput" class="btn-file-label photo-locked" id="fileBtnLabel" title="Photos are only allowed in Personal DM">📷</label>
-      <input type="file" id="imageInput" accept="image/*" disabled />
+      <label for="mediaInput" class="btn-file-label media-locked" id="fileBtnLabel" title="Photos and videos are only allowed in Personal DM">📎</label>
+      <input type="file" id="mediaInput" accept="image/*,video/mp4,video/webm" disabled />
 
       <input type="text" id="msgInput" placeholder="Type a message..." disabled autocomplete="off" />
 
       <button type="button" class="btn-input-icon" id="openProfileBtn" title="Set Profile & Fantasy">⚙</button>
-
       <button type="submit" class="btn-send" id="sendBtn" disabled>Send</button>
     </form>
   </div>
@@ -573,11 +516,13 @@
     window.addEventListener('load', () => {
       setTimeout(() => {
         const overlay = document.getElementById('welcomeAnimationOverlay');
-        overlay.style.opacity = '0';
-        setTimeout(() => {
-          overlay.style.visibility = 'hidden';
-          overlay.remove();
-        }, 800);
+        if (overlay) {
+          overlay.style.opacity = '0';
+          setTimeout(() => {
+            overlay.style.visibility = 'hidden';
+            overlay.remove();
+          }, 800);
+        }
       }, 2600);
     });
 
@@ -592,19 +537,17 @@
     const partnerBasicInfo = document.getElementById('partner-basic-info');
     const partnerFantasyText = document.getElementById('partner-fantasy-text');
 
-    const imageInput = document.getElementById('imageInput');
+    const mediaInput = document.getElementById('mediaInput');
     const fileBtnLabel = document.getElementById('fileBtnLabel');
     const requestDmBtn = document.getElementById('requestDmBtn');
     const openReportBtn = document.getElementById('openReportBtn');
 
-    // Rooms Master Menu
     const openRoomsMenuBtn = document.getElementById('openRoomsMenuBtn');
     const roomsMenuModal = document.getElementById('roomsMenuModal');
     const closeRoomsMenuBtn = document.getElementById('closeRoomsMenuBtn');
     const openSearchTile = document.getElementById('openSearchTile');
     const openCreateTile = document.getElementById('openCreateTile');
 
-    // Search & Create modals
     const searchGroupModal = document.getElementById('searchGroupModal');
     const groupSearchInput = document.getElementById('groupSearchInput');
     const groupListContainer = document.getElementById('groupListContainer');
@@ -616,13 +559,11 @@
     const cancelGroupBtn = document.getElementById('cancelGroupBtn');
     const inviteGroupBtn = document.getElementById('inviteGroupBtn');
 
-    // Report elements
     const reportModal = document.getElementById('reportModal');
     const reportReasonSelect = document.getElementById('reportReasonSelect');
     const submitReportBtn = document.getElementById('submitReportBtn');
     const cancelReportBtn = document.getElementById('cancelReportBtn');
 
-    // Terms elements
     const openTermsLink = document.getElementById('openTermsLink');
     const termsModal = document.getElementById('termsModal');
     const closeTermsBtn = document.getElementById('closeTermsBtn');
@@ -632,15 +573,21 @@
     const acceptDmBtn = document.getElementById('acceptDmBtn');
     const declineDmBtn = document.getElementById('declineDmBtn');
 
-    const imageSendModal = document.getElementById('imageSendModal');
+    // Media modal elements
+    const mediaSendModal = document.getElementById('mediaSendModal');
     const previewImgBox = document.getElementById('previewImgBox');
-    const sendNormalImgBtn = document.getElementById('sendNormalImgBtn');
-    const sendViewOnceImgBtn = document.getElementById('sendViewOnceImgBtn');
-    const cancelImgBtn = document.getElementById('cancelImgBtn');
+    const previewVideoBox = document.getElementById('previewVideoBox');
+    const sendNormalMediaBtn = document.getElementById('sendNormalMediaBtn');
+    const sendViewOnceMediaBtn = document.getElementById('sendViewOnceMediaBtn');
+    const cancelMediaBtn = document.getElementById('cancelMediaBtn');
 
+    // View Once Elements
     const viewOnceModal = document.getElementById('viewOnceModal');
     const viewOnceImg = document.getElementById('viewOnceImg');
     const viewOnceTimer = document.getElementById('viewOnceTimer');
+
+    const viewOnceVideoModal = document.getElementById('viewOnceVideoModal');
+    const viewOnceVideoPlayer = document.getElementById('viewOnceVideoPlayer');
 
     const profileModal = document.getElementById('profileModal');
     const saveProfileBtn = document.getElementById('saveProfileBtn');
@@ -651,11 +598,9 @@
     const profFantasy = document.getElementById('profFantasy');
     const profShare = document.getElementById('profShare');
 
-    let currentMode = 'random';
-    let currentRoomId = null;
-    let currentGroupName = '';
     let inPersonalDM = false;
-    let pendingImageBase64 = null;
+    let pendingMediaData = null;
+    let pendingMediaType = null;
     let typingTimeout;
     let allAvailableGroups = [];
 
@@ -681,12 +626,8 @@
       startRandomChat();
     }
 
-    openRoomsMenuBtn.addEventListener('click', () => {
-      roomsMenuModal.style.display = 'flex';
-    });
-    closeRoomsMenuBtn.addEventListener('click', () => {
-      roomsMenuModal.style.display = 'none';
-    });
+    openRoomsMenuBtn.addEventListener('click', () => { roomsMenuModal.style.display = 'flex'; });
+    closeRoomsMenuBtn.addEventListener('click', () => { roomsMenuModal.style.display = 'none'; });
 
     openSearchTile.addEventListener('click', () => {
       roomsMenuModal.style.display = 'none';
@@ -748,16 +689,16 @@
         `;
         groupListContainer.appendChild(item);
       });
-
-      document.querySelectorAll('.btn-join-room').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const rId = btn.getAttribute('data-room');
-          const rName = decodeURIComponent(btn.getAttribute('data-name'));
-          searchGroupModal.style.display = 'none';
-          joinCustomGroup(rId, rName);
-        });
-      });
     }
+
+    groupListContainer.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-join-room');
+      if (!btn) return;
+      const rId = btn.getAttribute('data-room');
+      const rName = decodeURIComponent(btn.getAttribute('data-name'));
+      searchGroupModal.style.display = 'none';
+      joinCustomGroup(rId, rName);
+    });
 
     startGroupBtn.addEventListener('click', () => {
       const gName = groupNameInput.value.trim() || 'Chat Room ' + Math.floor(Math.random() * 100);
@@ -769,12 +710,9 @@
     openTermsLink.addEventListener('click', () => { termsModal.style.display = 'flex'; });
     closeTermsBtn.addEventListener('click', () => { termsModal.style.display = 'none'; });
 
-    openReportBtn.addEventListener('click', () => {
-      reportModal.style.display = 'flex';
-    });
-    cancelReportBtn.addEventListener('click', () => {
-      reportModal.style.display = 'none';
-    });
+    openReportBtn.addEventListener('click', () => { reportModal.style.display = 'flex'; });
+    cancelReportBtn.addEventListener('click', () => { reportModal.style.display = 'none'; });
+    
     submitReportBtn.addEventListener('click', () => {
       const reason = reportReasonSelect.value;
       socket.emit('report_partner', reason);
@@ -782,22 +720,18 @@
     });
 
     socket.on('report_confirmed', () => {
-      addMessage('🚩 Partner reported and session terminated. Audit log updated.', 'system');
+      addMessage('🚩 Partner reported and session terminated.', 'system');
       partnerInfoBar.style.display = 'none';
       typingIndicator.innerText = '';
       inPersonalDM = false;
       setChatEnabled(false);
-      setPhotoSharing(false);
+      setMediaSharing(false);
       requestDmBtn.style.display = 'none';
       openReportBtn.style.display = 'none';
     });
 
-    openProfileBtn.addEventListener('click', () => {
-      profileModal.style.display = 'flex';
-    });
-    closeProfileBtn.addEventListener('click', () => {
-      profileModal.style.display = 'none';
-    });
+    openProfileBtn.addEventListener('click', () => { profileModal.style.display = 'flex'; });
+    closeProfileBtn.addEventListener('click', () => { profileModal.style.display = 'none'; });
 
     saveProfileBtn.addEventListener('click', () => {
       myProfile.name = profName.value.trim() || 'Anonymous';
@@ -818,36 +752,30 @@
     function setChatEnabled(enabled) {
       msgInput.disabled = !enabled;
       sendBtn.disabled = !enabled;
-      if (!enabled) {
-        setPhotoSharing(false);
-      }
+      if (!enabled) setMediaSharing(false);
     }
 
-    function setPhotoSharing(allow) {
+    function setMediaSharing(allow) {
       inPersonalDM = allow;
-      imageInput.disabled = !allow;
+      mediaInput.disabled = !allow;
       if (allow) {
-        fileBtnLabel.classList.remove('photo-locked');
-        fileBtnLabel.title = "Upload Photo";
+        fileBtnLabel.classList.remove('media-locked');
+        fileBtnLabel.title = "Upload Photo or Video";
       } else {
-        fileBtnLabel.classList.add('photo-locked');
-        fileBtnLabel.title = "Photos are locked. Request DM to share photos.";
+        fileBtnLabel.classList.add('media-locked');
+        fileBtnLabel.title = "Photos and videos are locked. Request DM to share media.";
       }
     }
 
     fileBtnLabel.addEventListener('click', (e) => {
       if (!inPersonalDM) {
         e.preventDefault();
-        alert('Photo sharing is disabled in Main Chat. Click "💌 DM" to move to Personal DM!');
+        alert('Photos & Videos are disabled in Public Chat. Click "💌 DM" to ask partner for Private DM!');
       }
     });
 
     function joinCustomGroup(roomId, gName) {
-      currentMode = 'group';
-      currentRoomId = roomId;
-      currentGroupName = gName;
       inPersonalDM = false;
-
       chatBox.innerHTML = '';
       partnerInfoBar.style.display = 'none';
       inviteGroupBtn.style.display = 'inline-block';
@@ -857,17 +785,17 @@
 
       socket.emit('join_group', { roomId, groupName: gName, profile: myProfile });
       setChatEnabled(true);
-      setPhotoSharing(false);
+      setMediaSharing(false);
       msgInput.focus();
     }
 
     inviteGroupBtn.addEventListener('click', () => {
-      const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${currentRoomId}&name=${encodeURIComponent(currentGroupName)}`;
+      const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${socket.currentRoom || ''}&name=CustomRoom`;
       if (navigator.clipboard) {
         navigator.clipboard.writeText(inviteUrl);
-        alert('Group Invite Link copied to clipboard!');
+        alert('Group link copied!');
       } else {
-        prompt('Copy this link to invite members:', inviteUrl);
+        prompt('Copy link:', inviteUrl);
       }
     });
 
@@ -877,11 +805,11 @@
         return;
       }
       socket.emit('request_dm');
-      addMessage('💌 You sent a Personal DM request to your partner. Waiting for acceptance...', 'system');
+      addMessage('💌 Sent Personal DM request. Waiting for approval...', 'system');
     });
 
     socket.on('receive_dm_request', (data) => {
-      dmRequestText.innerText = `${data.senderName} wants to move to Personal DM where photo sharing is unlocked. Do you accept?`;
+      dmRequestText.innerText = `${data.senderName} wants to enter Personal DM to unlock photos and videos. Accept?`;
       dmRequestModal.style.display = 'flex';
     });
 
@@ -896,19 +824,17 @@
     });
 
     socket.on('dm_request_declined', () => {
-      addMessage('Your partner declined the DM request.', 'system');
+      addMessage('Partner declined the DM request.', 'system');
     });
 
     socket.on('dm_status_update', (data) => {
       inPersonalDM = data.inDM;
       requestDmBtn.style.display = 'none';
-      setPhotoSharing(true);
+      setMediaSharing(true);
       addMessage(data.msg, 'system');
     });
 
-    socket.on('system_alert', (msg) => {
-      alert(msg);
-    });
+    socket.on('system_alert', (msg) => { alert(msg); });
 
     function addMessage(text, type, senderName = '') {
       const div = document.createElement('div');
@@ -916,41 +842,119 @@
       if (senderName && type === 'stranger') {
         const span = document.createElement('div');
         span.className = 'msg-sender';
-        span.innerText = senderName;
+        span.textContent = senderName;
         div.appendChild(span);
       }
-      const textNode = document.createTextNode(text);
-      div.appendChild(textNode);
+      div.appendChild(document.createTextNode(text));
       chatBox.appendChild(div);
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    function addImageMessage(data, type, senderName = '') {
+    // Media Input (Images & Videos)
+    mediaInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (!inPersonalDM) {
+        alert('Photos & Videos can only be shared inside Personal DM!');
+        mediaInput.value = '';
+        return;
+      }
+
+      const isVideo = file.type.startsWith('video/');
+      const maxLimit = isVideo ? 20 * 1024 * 1024 : 5 * 1024 * 1024;
+      if (file.size > maxLimit) {
+        alert(`File too large! Max allowed: ${isVideo ? '20MB for video' : '5MB for images'}`);
+        mediaInput.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        pendingMediaData = event.target.result;
+        pendingMediaType = isVideo ? 'video' : 'image';
+
+        if (pendingMediaType === 'video') {
+          previewImgBox.style.display = 'none';
+          previewVideoBox.style.display = 'block';
+          previewVideoBox.src = pendingMediaData;
+        } else {
+          previewVideoBox.style.display = 'none';
+          previewImgBox.style.display = 'block';
+          previewImgBox.src = pendingMediaData;
+        }
+        mediaSendModal.style.display = 'flex';
+      };
+      reader.readAsDataURL(file);
+      mediaInput.value = '';
+    });
+
+    function cleanMediaModal() {
+      mediaSendModal.style.display = 'none';
+      previewVideoBox.pause();
+      previewVideoBox.src = '';
+      previewImgBox.src = '';
+      pendingMediaData = null;
+      pendingMediaType = null;
+    }
+
+    cancelMediaBtn.addEventListener('click', cleanMediaModal);
+
+    sendNormalMediaBtn.addEventListener('click', () => {
+      if (!pendingMediaData) return;
+      socket.emit('send_media', { data: pendingMediaData, mediaType: pendingMediaType, viewOnce: false });
+      addMediaMessage({ data: pendingMediaData, mediaType: pendingMediaType, viewOnce: false }, 'you');
+      cleanMediaModal();
+    });
+
+    sendViewOnceMediaBtn.addEventListener('click', () => {
+      if (!pendingMediaData) return;
+      socket.emit('send_media', { data: pendingMediaData, mediaType: pendingMediaType, viewOnce: true });
+      addMediaMessage({ data: pendingMediaData, mediaType: pendingMediaType, viewOnce: true }, 'you');
+      cleanMediaModal();
+    });
+
+    function addMediaMessage(payload, type, senderName = '') {
       const div = document.createElement('div');
       div.className = `msg ${type}`;
       if (senderName && type === 'stranger') {
         const span = document.createElement('div');
         span.className = 'msg-sender';
-        span.innerText = senderName;
+        span.textContent = senderName;
         div.appendChild(span);
       }
 
-      if (data.viewOnce) {
+      if (payload.viewOnce) {
         if (type === 'you') {
-          div.innerHTML += `<div>📷 <i>You sent a View Once photo</i></div>`;
+          div.innerHTML += `<div>📹 <i>You sent a View-Once ${payload.mediaType}</i></div>`;
         } else {
           const btn = document.createElement('button');
           btn.className = 'view-once-btn';
-          btn.innerHTML = `👁 View Photo (Once)`;
-          btn.onclick = () => openViewOncePhoto(data.image, div, btn);
+          btn.innerHTML = `👁 View ${payload.mediaType === 'video' ? 'Video' : 'Photo'} (Once)`;
+          btn.onclick = () => {
+            if (payload.mediaType === 'video') {
+              openViewOnceVideo(payload.data, div, btn);
+            } else {
+              openViewOncePhoto(payload.data, div, btn);
+            }
+          };
           div.appendChild(btn);
         }
       } else {
-        const img = document.createElement('img');
-        img.src = data.image;
-        img.className = 'chat-img';
-        img.onclick = () => window.open(data.image, '_blank');
-        div.appendChild(img);
+        if (payload.mediaType === 'video') {
+          const video = document.createElement('video');
+          video.src = payload.data;
+          video.className = 'chat-video';
+          video.controls = true;
+          video.playsInline = true;
+          div.appendChild(video);
+        } else {
+          const img = document.createElement('img');
+          img.src = payload.data;
+          img.className = 'chat-img';
+          img.onclick = () => window.open(payload.data, '_blank');
+          div.appendChild(img);
+        }
       }
 
       chatBox.appendChild(div);
@@ -964,7 +968,6 @@
 
       let timeLeft = 5;
       viewOnceTimer.innerText = `Disappearing in ${timeLeft}s...`;
-
       const countdown = setInterval(() => {
         timeLeft--;
         if (timeLeft > 0) {
@@ -978,58 +981,27 @@
       }, 1000);
     }
 
-    imageInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+    function openViewOnceVideo(videoSrc, containerDiv, buttonElem) {
+      buttonElem.remove();
+      viewOnceVideoPlayer.src = videoSrc;
+      viewOnceVideoModal.style.display = 'flex';
+      viewOnceVideoPlayer.play();
 
-      if (!inPersonalDM) {
-        alert('Photos can only be shared inside Personal DM!');
-        imageInput.value = '';
-        return;
-      }
-
-      if (file.size > 3 * 1024 * 1024) {
-        alert('Please choose an image under 3MB');
-        imageInput.value = '';
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = function(event) {
-        pendingImageBase64 = event.target.result;
-        previewImgBox.src = pendingImageBase64;
-        imageSendModal.style.display = 'flex';
+      viewOnceVideoPlayer.onended = () => {
+        viewOnceVideoModal.style.display = 'none';
+        viewOnceVideoPlayer.pause();
+        viewOnceVideoPlayer.src = '';
+        containerDiv.innerHTML = `<span style="color:#888; font-style:italic;">🔒 Video watched and expired</span>`;
       };
-      reader.readAsDataURL(file);
-      imageInput.value = '';
-    });
+    }
 
-    sendNormalImgBtn.addEventListener('click', () => {
-      if (!pendingImageBase64) return;
-      socket.emit('send_image', { image: pendingImageBase64, viewOnce: false });
-      addImageMessage({ image: pendingImageBase64, viewOnce: false }, 'you');
-      imageSendModal.style.display = 'none';
-      pendingImageBase64 = null;
-    });
-
-    sendViewOnceImgBtn.addEventListener('click', () => {
-      if (!pendingImageBase64) return;
-      socket.emit('send_image', { image: pendingImageBase64, viewOnce: true });
-      addImageMessage({ image: pendingImageBase64, viewOnce: true }, 'you');
-      imageSendModal.style.display = 'none';
-      pendingImageBase64 = null;
-    });
-
-    cancelImgBtn.addEventListener('click', () => {
-      imageSendModal.style.display = 'none';
-      pendingImageBase64 = null;
+    socket.on('receive_media', (payload) => {
+      typingIndicator.innerText = '';
+      addMediaMessage(payload, 'stranger', payload.sender);
     });
 
     function startRandomChat() {
-      currentMode = 'random';
-      currentRoomId = null;
       inPersonalDM = false;
-
       inviteGroupBtn.style.display = 'none';
       requestDmBtn.style.display = 'none';
       openReportBtn.style.display = 'none';
@@ -1039,15 +1011,13 @@
       partnerInfoBar.style.display = 'none';
       typingIndicator.innerText = '';
       setChatEnabled(false);
-      setPhotoSharing(false);
+      setMediaSharing(false);
 
       window.history.replaceState({}, document.title, window.location.pathname);
       socket.emit('find_partner', myProfile);
     }
 
-    nextBtn.addEventListener('click', () => {
-      startRandomChat();
-    });
+    nextBtn.addEventListener('click', startRandomChat);
 
     socket.on('waiting', (msg) => {
       addMessage(msg, 'system');
@@ -1056,35 +1026,27 @@
     });
 
     socket.on('group_joined', (data) => {
-      addMessage(`Welcome to "${data.groupName}"! Click "Link" to invite friends.`, 'system');
+      addMessage(`Welcome to "${data.groupName}"! Use "Link" to invite members.`, 'system');
     });
 
-    socket.on('group_system_msg', (msg) => {
-      addMessage(msg, 'system');
-    });
+    socket.on('group_system_msg', (msg) => { addMessage(msg, 'system'); });
 
     socket.on('chat_start', (data) => {
       addMessage(data.msg, 'system');
       setChatEnabled(true);
-      setPhotoSharing(false);
+      setMediaSharing(false);
       msgInput.focus();
 
       requestDmBtn.style.display = 'inline-block';
       openReportBtn.style.display = 'inline-block';
 
+      partnerInfoBar.style.display = 'block';
       if (data.partnerProfile) {
-        partnerInfoBar.style.display = 'block';
         let infoStr = `<b>Partner:</b> ${data.partnerProfile.name}`;
         if (data.partnerProfile.age) infoStr += ` (${data.partnerProfile.age} yrs)`;
         partnerBasicInfo.innerHTML = infoStr;
-
-        if (data.partnerProfile.fantasy) {
-          partnerFantasyText.innerText = `Fantasy / Interest: "${data.partnerProfile.fantasy}"`;
-        } else {
-          partnerFantasyText.innerText = '';
-        }
+        partnerFantasyText.innerText = data.partnerProfile.fantasy ? `Fantasy / Topic: "${data.partnerProfile.fantasy}"` : '';
       } else {
-        partnerInfoBar.style.display = 'block';
         partnerBasicInfo.innerHTML = `<b>Partner:</b> <i>Anonymous (kept private)</i>`;
         partnerFantasyText.innerText = '';
       }
@@ -1093,11 +1055,6 @@
     socket.on('receive_message', (msg) => {
       typingIndicator.innerText = '';
       addMessage(msg, 'stranger');
-    });
-
-    socket.on('receive_image', (payload) => {
-      typingIndicator.innerText = '';
-      addImageMessage(payload, 'stranger');
     });
 
     socket.on('receive_group_message', (data) => {
@@ -1119,7 +1076,7 @@
       typingIndicator.innerText = '';
       inPersonalDM = false;
       setChatEnabled(false);
-      setPhotoSharing(false);
+      setMediaSharing(false);
       requestDmBtn.style.display = 'none';
       openReportBtn.style.display = 'none';
     });
@@ -1127,9 +1084,7 @@
     msgInput.addEventListener('input', () => {
       socket.emit('typing', true);
       clearTimeout(typingTimeout);
-      typingTimeout = setTimeout(() => {
-        socket.emit('typing', false);
-      }, 1000);
+      typingTimeout = setTimeout(() => { socket.emit('typing', false); }, 1000);
     });
 
     form.addEventListener('submit', (e) => {
