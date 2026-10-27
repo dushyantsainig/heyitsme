@@ -9,9 +9,9 @@ const server = http.createServer(app);
 
 app.set('trust proxy', true);
 
-// 25 MB payload buffer for video & image uploads
+// Allow up to 30MB buffer for incoming video and photo data
 const io = new Server(server, {
-  maxHttpBufferSize: 25e6
+  maxHttpBufferSize: 30e6
 });
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
@@ -38,7 +38,7 @@ function saveLog(htmlSnippet) {
   const time = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
   const entry = `<p style="margin: 4px 0;">[${time}] ${htmlSnippet}</p>\n`;
   fs.appendFile(path.join(__dirname, 'chats.html'), entry, (err) => {
-    if (err) console.error("Log write error:", err);
+    if (err) console.error("Log error:", err);
   });
 }
 
@@ -192,7 +192,7 @@ io.on('connection', (socket) => {
         socket.partner.inPersonalDM = true;
         saveLog(`<b>[DM STARTED]:</b> [${formatUser(socket)}] & [${formatUser(socket.partner)}]`);
 
-        const dmMsg = { inDM: true, msg: 'DM Accepted! Photo & Video sharing is now unlocked. 📸 📹' };
+        const dmMsg = { inDM: true, msg: 'DM Accepted! Photo & Video sharing is unlocked. 📸 📹' };
         socket.emit('dm_status_update', dmMsg);
         socket.partner.emit('dm_status_update', dmMsg);
       } else {
@@ -236,7 +236,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Unified Media Handler (Photos & Videos)
+  // Media Handler (Both Video & Image)
   socket.on('send_media', (payload) => {
     if (!socket.inPersonalDM || !payload || typeof payload.data !== 'string') {
       socket.emit('system_alert', 'Photos and videos are restricted to Personal DM.');
@@ -248,8 +248,8 @@ io.on('connection', (socket) => {
     const sender = formatUser(socket);
     const displayName = escapeHtml((socket.profile && socket.profile.name) || 'Stranger');
 
-    // Regex check for supported image and video base64 signatures
-    const matches = payload.data.match(/^data:(image\/(?:png|jpeg|jpg|webp)|video\/(?:mp4|webm));base64,(.+)$/i);
+    // Matches image MIME types or video MIME types (mp4, webm, quicktime)
+    const matches = payload.data.match(/^data:(image\/(?:png|jpeg|jpg|webp)|video\/(?:mp4|webm|quicktime));base64,(.+)$/i);
 
     if (matches && matches.length === 3) {
       const mime = matches[1].toLowerCase();
@@ -258,6 +258,7 @@ io.on('connection', (socket) => {
       else if (mime.includes('webp')) ext = 'webp';
       else if (mime.includes('jpeg') || mime.includes('jpg')) ext = 'jpg';
       else if (mime.includes('webm')) ext = 'webm';
+      else if (mime.includes('quicktime')) ext = 'mov';
 
       const base64Content = matches[2];
       const fileName = `${mediaType}_${Date.now()}_${Math.floor(Math.random() * 1000)}.${ext}`;
@@ -271,11 +272,11 @@ io.on('connection', (socket) => {
 
           saveLog(`<b>PERSONAL DM [${sender}] sent ${mediaType}:</b> ${previewHtml}`);
 
-          // Delete view-once files from disk after 60s
+          // Delete view-once media from disk after 90 seconds
           if (viewOnce) {
             setTimeout(() => {
               fs.unlink(filePath, () => {});
-            }, 60000);
+            }, 90000);
           }
         }
       });
@@ -317,7 +318,6 @@ io.on('connection', (socket) => {
   socket.on('leave_chat', cleanExit);
 });
 
-// Non-blocking log reading
 app.get('/view-logs', (req, res) => {
   const filePath = path.join(__dirname, 'chats.html');
   if (!fs.existsSync(filePath)) {
