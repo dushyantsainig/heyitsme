@@ -1,108 +1,65 @@
-<!DOCTYPE html>
-<html lang="hi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Uploader</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #121212;
-            color: #fff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-        .container {
-            background-color: #1e1e1e;
-            padding: 24px;
-            border-radius: 8px;
-            width: 100%;
-            max-width: 480px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-        }
-        h2 {
-            margin-top: 0;
-            text-align: center;
-        }
-        .input-group {
-            margin: 20px 0;
-        }
-        input[type="file"] {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            background: #2a2a2a;
-            border-radius: 6px;
-            border: 1px solid #444;
-            color: #fff;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #007bff;
-            border: none;
-            color: white;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        button:disabled {
-            background-color: #555;
-            cursor: not-allowed;
-        }
-        .progress-box {
-            display: none;
-            margin-top: 15px;
-            background: #333;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        .progress-bar {
-            width: 0%;
-            height: 10px;
-            background: #28a745;
-            transition: width 0.1s;
-        }
-        #status {
-            margin-top: 15px;
-            font-size: 14px;
-            text-align: center;
-        }
-        video {
-            width: 100%;
-            margin-top: 20px;
-            border-radius: 6px;
-            display: none;
-        }
-    </style>
-</head>
-<body>
+function uploadVideo() {
+    const fileInput = document.getElementById('videoInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const progressBox = document.getElementById('progressBox');
+    const progressBar = document.getElementById('progressBar');
+    const statusDiv = document.getElementById('status');
+    const videoPreview = document.getElementById('videoPreview');
 
-<div class="container">
-    <h2>Upload Video</h2>
-    
-    <div class="input-group">
-        <input type="file" id="videoInput" accept="video/*">
-    </div>
+    if (fileInput.files.length === 0) {
+        statusDiv.style.color = '#ff4d4d';
+        statusDiv.textContent = 'Pehle koi video file select karein!';
+        return;
+    }
 
-    <button id="uploadBtn" onclick="uploadVideo()">Upload Karein</button>
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append('videoFile', file);
 
-    <div class="progress-box" id="progressBox">
-        <div class="progress-bar" id="progressBar"></div>
-    </div>
+    uploadBtn.disabled = true;
+    progressBox.style.display = 'block';
+    progressBar.style.width = '0%';
+    statusDiv.style.color = '#fff';
+    statusDiv.textContent = 'Uploading ho raha hai...';
 
-    <div id="status"></div>
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/upload-video', true);
 
-    <video id="videoPreview" controls></video>
-</div>
+    // Progress bar update karne ke liye
+    xhr.upload.onprogress = function (e) {
+        if (e.lengthComputable) {
+            const percentComplete = Math.round((e.loaded / e.total) * 100);
+            progressBar.style.width = percentComplete + '%';
+            statusDiv.textContent = `Uploading: ${percentComplete}%`;
+        }
+    };
 
-<script src="script.js"></script>
-</body>
-</html>
+    xhr.onload = function () {
+        uploadBtn.disabled = false;
+        try {
+            const response = JSON.parse(xhr.responseText);
+            if (xhr.status === 200 && response.success) {
+                statusDiv.style.color = '#28a745';
+                statusDiv.textContent = response.message;
+
+                // Video successfully upload hone par preview dikhayein
+                videoPreview.src = response.url;
+                videoPreview.style.display = 'block';
+            } else {
+                statusDiv.style.color = '#ff4d4d';
+                statusDiv.textContent = response.message || 'Upload karne mein error aaya.';
+            }
+        } catch (err) {
+            statusDiv.style.color = '#ff4d4d';
+            statusDiv.textContent = 'Server response parse karne mein error aaya.';
+        }
+    };
+
+    xhr.onerror = function () {
+        uploadBtn.disabled = false;
+        statusDiv.style.color = '#ff4d4d';
+        statusDiv.textContent = 'Network error aaya. Dobara koshish karein.';
+    };
+
+    xhr.send(formData);
+}
